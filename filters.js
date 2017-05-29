@@ -1,13 +1,12 @@
 import moment from 'moment'
-import store from 'src/store'
 
-export function formatMoment (value, format) {
-  return moment.utc(value).tz(store.state.timezone).format(format)
+export function formatMoment (value, format, timezone) {
+  return moment.utc(value).tz(timezone).format(format)
 }
 
-export function fromNow (value, noSuffix = false) {
+export function fromNow (value, noSuffix = false, offset = null) {
   const time = moment.utc(value)
-  time.subtract({ms: store.state.time.offset})
+  offset && time.subtract({ms: offset})
   return time.from(moment.utc(), noSuffix)
 }
 
