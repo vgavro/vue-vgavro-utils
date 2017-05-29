@@ -2,13 +2,16 @@ const request = require('sync-request')
 
 // helper functions for CDN configuration
 // ----------------
-const deps = require('./package.json').dependencies
+const deps = require(process.cwd() + '/package.json').dependencies
 
 function npmVersion (npmPackage) {
+  if (!deps[npmPackage]) {
+    throw new Error(`[CDN injector] package.json: "${npmPackage}" not found`)
+  }
   const match = deps[npmPackage].match(/(\d+\.?)+(-[\d\w.]+)?$/)
   if (!match) {
-    throw Error('[CDN injector] version parse failed:' +
-                `${npmPackage} ${deps[npmPackage]}`)
+    throw new Error('[CDN injector] version parse failed:' +
+                    `${npmPackage} ${deps[npmPackage]}`)
   }
   return match[0]
 }
@@ -26,7 +29,7 @@ function checkUrls (urls) {
 
   urls.forEach((url) => {
     if (!(url.match(/\.css(\?|$)/) || url.match(/\.js(\?|$)/))) {
-      throw Error('Not implemented injecting extension: ' + url)
+      throw new Error('Not implemented injecting extension: ' + url)
     }
 
     if (!url.search('://') && !url.startswith('//')) {
@@ -47,8 +50,8 @@ function checkUrls (urls) {
     if (response.statusCode === 200) {
       console.log('[CDN check] ok ' + url)
     } else {
-      throw Error('[CDN check] failed ' + url + ' response ' +
-                  response.statusCode + ' body ' + response.body.toString())
+      throw new Error('[CDN check] failed ' + url + ' response ' +
+                      response.statusCode + ' body ' + response.body.toString())
     }
   })
 }
