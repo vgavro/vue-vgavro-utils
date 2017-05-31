@@ -60,23 +60,40 @@ export const RequestsMixin = {
 const DEFAULT_ERROR_MESSAGES = {
   FIELD_REQUIRED: 'FIELD_REQUIRED',
   WRONG_FORMAT: 'WRONG_FORMAT',
+  MIN_LENGTH_REQUIRED: (length) => `MIN_LENGTH_REQUIRED(${length})`,
+  MAX_LENGTH_REQUIRED: (length) => `MAX_LENGTH_REQUIRED(${length})`,
 }
 
 export const EMAIL_REGEXP = /\S+@\S+\.\S+/
 
-class Field {
+export class Field {
   constructor (vm, name, params) {
     this._vm = vm
     this._name = name
     this._watchData = params.watchData || null
     this.initial = params.initial || null
     this.required = params.required || false
-    this.regexp = params.regexp || null
-    this.validators = params.validators || []
+
     this.getCoerce = params.getCoerce || ((v) => v)
     this.setCoerce = params.setCoerce || ((v) => v)
+
     this.errorMessages = Object.assign({}, DEFAULT_ERROR_MESSAGES,
                                        params.errorMessages || {})
+    this.validators = params.validators || []
+
+    if (this.required) this.validators.push((value) => {
+      if (!value) return this.errorMessages.FIELD_REQUIRED
+    })
+    if (params.regexp) this.validators.push((value) => {
+      if (value && !params.regexp.test(this.data)) return this.errorMessages.WRONG_FORMAT
+    })
+    if (params.minLength) this.validators.push((value) => {
+      if (value.length < params.minLength) return this.errorMessages.MIN_LENGTH_REQUIRED(params.minLength)
+    })
+    if (params.maxLength) this.validators.push((value) => {
+      if (value.length > params.maxLength) return this.errorMessages.MAX_LENGTH_REQUIRED(params.MaxLength)
+    })
+
     this.reset()
   }
 
@@ -101,29 +118,18 @@ class Field {
   validate (force = false) {
     if (!force && !this.touched) return
 
-    if (this.required && !this.data) {
-      this.errors = [this.errorMessages.FIELD_REQUIRED]
-      return
-    }
-
-    if (this.data && this.regexp && !this.regexp.test(this.data)) {
-      this.errors = [this.errorMessages.WRONG_FORMAT]
-      return
-    }
-
+    this.errors = []
     this.validators.forEach(validator => {
       const error = validator.call(this._vm, this.data)
       if (error) {
-        if (error instanceof Array) this.errors = error
-        else this.errors = [error]
-      } else {
-        this.errors = []
+        if (error instanceof Array) this.errors = this.errors.concat(error)
+        else this.errors.push(error)
       }
     })
   }
 }
 
-class Form {
+export class Form {
   constructor (vm, name, params) {
     this._vm = vm
     this._name = name
@@ -142,6 +148,7 @@ class Form {
     this._submit = params.submit || null
     this._validate = params.validate || null
     this._watchFields = params.watchFields || null
+    params.onCreate && params.onCreate.call(this._vm, this)
   }
 
   submit () {
@@ -184,7 +191,6 @@ class Form {
           if (field._watchData.call(this._vm, newVal, oldVal)) return
         }
         if (this._watchFields) {
-          console.log(this._watchFields)
           if (this._watchFields.call(this._vm, field, newVal, oldVal)) return
         }
         field.touched = true
