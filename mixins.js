@@ -74,6 +74,9 @@ export class Field {
     this.initial = params.initial || null
     this.required = params.required || false
 
+    this._enabled = params.enabled || null
+    this.enabled = true
+
     this.getCoerce = params.getCoerce || ((v) => v)
     this.setCoerce = params.setCoerce || ((v) => v)
 
@@ -107,6 +110,7 @@ export class Field {
     this.data = this.initial
     this.touched = false
     this.errors = []
+    this.enabled = true
   }
 
   getData () {
@@ -122,6 +126,14 @@ export class Field {
   }
 
   validate (force = false) {
+    if (this._enabled) {
+      this.enabled = this._enabled.call(this._vm)
+      if (!this.enabled) {
+        this.errors = []
+        return
+      }
+    }
+
     if (!force && !this.touched) return
 
     this.errors = []
@@ -144,6 +156,7 @@ export class Form {
     this.errors = []
 
     this.fields = []
+    // TODO: parse fields from array
     entries(params.fields).forEach(([name, params]) => {
       params.formatError = params.formatError || this.formatError
       const field = new Field(vm, name, params)
@@ -158,7 +171,7 @@ export class Form {
   }
 
   submit () {
-    const result = this._submit.call(this._vm, this.getData())
+    const result = this._submit.call(this._vm, this.getData(true))
     if (result) {
       result.catch(error => {
         this.onSubmitRejected(error)
@@ -191,6 +204,7 @@ export class Form {
 
   watch () {
     this._watchers = this.fields.map(field => {
+      if (field._enabled) field.enabled = field._enabled.call(this._vm)
       let expr = `${this._name}.${field._name}.data`
       return this._vm.$watch(expr, (newVal, oldVal) => {
         if (field._watchData) {
@@ -257,8 +271,10 @@ export class Form {
     })
   }
 
-  getData () {
-    return fromPairs(this.fields.map(field => {
+  getData (onlyEnabled = false) {
+    let fields = this.fields
+    if (onlyEnabled) fields = fields.filter((f) => f.enabled)
+    return fromPairs(fields.map(field => {
       return [field._name, field.getData()]
     }))
   }
