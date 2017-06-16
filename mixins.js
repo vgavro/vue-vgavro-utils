@@ -82,7 +82,7 @@ export class Field {
     this.validators = params.validators || []
 
     if (this.required) this.validators.push((value) => {
-      if (!value) return this.errorMessages.FIELD_REQUIRED
+      if (value === null || value === undefined) return this.errorMessages.FIELD_REQUIRED
     })
     if (params.regexp) this.validators.push((value) => {
       if (value && !params.regexp.test(this.data)) return this.errorMessages.WRONG_FORMAT
@@ -93,6 +93,12 @@ export class Field {
     if (params.maxLength) this.validators.push((value) => {
       if (value.length > params.maxLength) return this.errorMessages.MAX_LENGTH_REQUIRED(params.MaxLength)
     })
+
+    // TODO: change logic for extra bindings
+    this.choices = params.choices
+    this.label = params.label
+    this.help = params.help
+    this.type = params.type
 
     this.reset()
   }
@@ -228,7 +234,7 @@ export class Form {
   get isReady () {
     if (this.errors.length > 0) return false
     return !this.fields.some(f => {
-      return (f.error || (f.required && !f.data))
+      return (f.error || (f.required && (f.data === null || f.data === undefined)))
     })
   }
 
