@@ -1,32 +1,61 @@
 import { timeoutPromise } from './utils'
 
 const CODE_TYPES = {
-  '-1': 'REQUEST_ERROR',
+  '-1': 'REQUEST ERROR',
   '200': 'OK',
   '202': 'ACCEPTED',
   '403': 'FORBIDDEN',
-  '404': 'NOT_FOUND',
-  '422': 'UNPROCESSABLE_ENTITY',
-  '500': 'INTERNAL_SERVER_ERROR',
+  '404': 'NOT FOUND',
+  '422': 'UNPROCESSABLE ENTITY',
+  '500': 'INTERNAL SERVER ERROR',
+  '600': 'TASK RETRIES EXCEEDED',
+}
+
+function encodeURIObject (qs) {
+    return Object.keys(qs)
+                 .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(qs[k]))
+                 .join('&')
+}
+
+function _joinURL (base, path) {
+  if (base.endsWith('/')) {
+    if (path.startsWith('/')) return base + path.substring(1)
+  } else if (!path.startsWith('/')) return base + '/' + path
+  return base + path
+}
+
+function joinURL (...urls) {
+  let result = ''
+  urls.forEach((url) => result = (result && _joinURL(result, url) || url))
+  return result
+}
+
+function getFlaskDebugURL (flaskDebuggerURL, fetchOptions) {
+    const debugPayload = {
+      url: fetchOptions.url,
+      method: fetchOptions.options.method,
+    }
+    if (fetchOptions.options.body)
+      debugPayload.data = fetchOptions.options.body
+
+    return flaskDebuggerURL + '?' + encodeURIObject(debugPayload)
 }
 
 export default class Api {
   constructor (settings) {
     this.taskRetries = {}
+    this.errorHandlers = []
     this.config(settings)
   }
 
   config (settings) {
-    [
-      'API_URL',
-      'API_MODE',
-      'API_CREDENTIALS_MODE',
-      'TASK_URL',
-      'TASK_REQUEST_MAX_RETRIES',
-      'TASK_REQUEST_WAIT_TIMEOUT',
-    ].map(key => {
-      this[key] = settings[key]
-    })
+    this.DEBUG = settings.DEBUG
+    this.API_URL = settings.API_URL
+    this.API_MODE = settings.API_MODE
+    this.API_CREDENTIALS_MODE = settings.API_CREDENTIALS_MODE
+    this.TASK_URL = settings.TASK_URL
+    this.TASK_REQUEST_MAX_RETRIES = settings.TASK_REQUEST_MAX_RETRIES
+    this.TASK_REQUEST_WAIT_TIMEOUT = settings.TASK_REQUEST_WAIT_TIMEOUT
   }
 
   request (method, url, {qs = null, data = null}) {
@@ -37,11 +66,7 @@ export default class Api {
     }
 
     if (qs) {
-      const esc = encodeURIComponent
-      let query = Object.keys(qs)
-                        .map(k => esc(k) + '=' + esc(qs[k]))
-                        .join('&')
-      url = url + '?' + query
+      url = url + '?' + encodeURIObject(qs)
     }
 
     if (data) {
@@ -51,7 +76,15 @@ export default class Api {
       })
     }
 
-    return window.fetch(this.API_URL + url, options).then(response => {
+    const fetchErrorOptions = { fetch: { url: joinURL(this.API_URL, url), options: options } }
+    if (this.DEBUG) {
+      Object.assign(fetchErrorOptions.fetch, {
+        flaskDebugURL: getFlaskDebugURL(joinURL(this.API_URL, 'flask_debugger'),
+                                        fetchErrorOptions.fetch)
+      })
+    }
+
+    return window.fetch(joinURL(this.API_URL, url), options).then(response => {
       if (response.status === 202) {
         return this.getTask(response.data)
       }
@@ -88,15 +121,19 @@ export default class Api {
 
       return response.json().then(data => {
         if (data.error) {
+          Object.assign(data.error, fetchErrorOptions)
           return this.error(data.error.code, data.error.message, data.error)
         }
+        Object.assign(data, fetchErrorOptions)
         return this.error(response.status, response.statusText, data)
-      }, () => {
-        return this.error(response.status, response.statusText)
+      }, (error) => {
+
+        Object.assign(error, fetchErrorOptions)
+        return this.error(response.status, response.statusText, error)
       })
     }, (error) => {
       // network-related problems
-      return this.error(-1, `REQUEST_ERROR: ${error.message}`)
+      return this.error(-1, error.message, fetchErrorOptions)
     })
   }
 
@@ -104,6 +141,7 @@ export default class Api {
     console.log(`API error ${code}: ${message}`, data)
     data.code_type = data.code_type || CODE_TYPES[code] || null
     Object.assign(data, {code, message})
+    this.errorHandlers.forEach((callback) => callback(data))
     return Promise.reject(data)
   }
 

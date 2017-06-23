@@ -4,31 +4,85 @@ function removeClass (element, cls) {
   element.className = element.className.replace(regexp,' ')
 };
 
-function setErrorHandler (w, errorBoxCls, errorCallback) {
-  // TODO: Add backend call for error logging
+function setAppErrorHandler (w, errorBoxCls, errorCallback) {
   w.onerror = function (message, source, lineno, colno, err) {
-    if (w.app && w.app.loaded && !w.app.DEBUG) return
+    // TODO: Add backend call for error logging
 
-    errorCallback && errorCallback(message, source, lineno, colno, err)
+    function escapeTags (str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') ;
+    }
 
-    if (source) message += ' at ' + source + ':' + lineno + ':' + colno
-    if (err && err.stack) message += ' <br><b>Stack:</b> ' + err.stack;
+    function formatPythonDebugLine (row) {
+      return (row[0] + '<b>:' + row[1] + '</b> in <b>' + row[2] + '</b>\n' +
+              '  <i style="color: blue">' + escapeTags(row[3]) + '</i>\n')
+    }
+
+    if (!message && err) {
+      // assuming it's api/app error
+      message = ''
+      if (err.code) message += '<b>' + String(err.code) + ':</b> '
+      if (err.code_type) message += '<b>' + err.code_type + ':</b> '
+      if (err.name) message += '<b>' + err.name + ':</b> '
+      if (err.message) message += escapeTags(err.repr || err.message)
+      if (!message) message = escapeTags(String(err))
+    } else message = escapeTags(message)
+
+    if (source) source = source + ':' + lineno + ':' + colno
+
+    var stack = ''
+    if (err && Object.prototype.toString.call(err.stack) == '[object Array]') {
+      err.stack.forEach(function (row) {
+        if (row.length != 4) return
+        stack += formatPythonDebugLine(row)
+      })
+    } else if (err && err.stack) {
+        stack = escapeTags(String(err.stack))
+    }
+
+    var traceback = ''
+    if (err && Object.prototype.toString.call(err.traceback) == '[object Array]') {
+      err.traceback.forEach(function (row) {
+        if (row.length != 4) return
+        traceback += formatPythonDebugLine(row)
+      })
+    } else if (err && err.traceback) traceback = escapeTags(String(err.traceback))
+
+    var fetch_ = err.fetch || null
+
+    if (errorCallback &&
+        errorCallback(message, {source: source, fetch: fetch_,
+                                stack: stack, traceback: traceback})) {
+      return
+    }
+
+    // Display only first error, and never show on loaded app
+    if (w.appLoadError || (w.app && w.app.loaded && !w.app.DEBUG)) return
+
     (document.body || document.getElementsByTagName('body')[0]).innerHTML =
       '<div class="' + errorBoxCls + '">' +
-      '<b>Error:</b> ' + message +
-      '<br><b>Useragent:</b> ' + navigator.userAgent +
-      '<br><b>Time:</b> ' + new Date() +
-      '<br><button onclick="location.reload()">Reload</button>' +
+      '<b>Error:</b><pre>' + message + '</pre>' +
+      '<pre>' +
+      (source && ('<b>Source:</b> ' + source + '\n') || '') +
+      (fetch_ && ('<b>' + fetch_.options.method.toUpperCase() + ':</b> ' +
+                              fetch_.url + '\n') || '') +
+      '<b>UserAgent:</b> ' + navigator.userAgent + '\n' +
+      '<b>Time:</b> ' + new Date() + '\n' +
+      '</pre>' +
+      '<button onclick="location.reload()">RELOAD</button><br>' +
+      (fetch_ && fetch_.flaskDebugURL &&
+       ('<button onclick=\'window.open("' + fetch_.flaskDebugURL +
+        '")\'>FLASK DEBUG</button><br>') || '') +
+      '<hr/>' +
+      (traceback && ('<b>Traceback:</b><pre>' + traceback + '</pre>') || '') +
+      (stack && ('<b>Stack:</b><pre>' + stack + '</pre>') || '') +
       '</div>'
-    w.onerror = null
+    w.appLoadError = true
   };
 
   w.addEventListener('unhandledrejection', function (ev) {
-    var message
     if (ev.reason) {
-      message = ev.reason.message
-      if (ev.reason.stack) message += '<br><b>Stack:</b> ' + ev.reason.stack
-    } else message = 'Unhandled Rejection (unknown reason)'
-    w.onerror && w.onerror(message)
+      return w.onerror && w.onerror(null, null, null, null, ev.reason)
+    }
+    w.onerror && w.onerror('Unhandled Rejection (unknown reason)')
   });
 };
