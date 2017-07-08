@@ -105,6 +105,7 @@ export class Field {
     this.label = params.label
     this.help = params.help
     this.type = params.type
+    this.hidden = params.hidden
 
     this.reset()
   }
