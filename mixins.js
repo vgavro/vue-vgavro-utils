@@ -68,6 +68,7 @@ export const EMAIL_REGEXP = /\S+@\S+\.\S+/
 
 export class Field {
   constructor (vm, name, params) {
+    console.log(params)
     this._vm = vm
     this._name = name
     this._watchData = params.watchData || null
@@ -87,15 +88,20 @@ export class Field {
     if (this.required) this.validators.push((value) => {
       if (value === null || value === undefined) return this.errorMessages.FIELD_REQUIRED
     })
-    if (params.regexp) this.validators.push((value) => {
-      if (value && !params.regexp.test(this.data)) return this.errorMessages.WRONG_FORMAT
+    if (params.regexp) {
+      const regexp = (params.regexp instanceof RegExp) ? params.regexp : new RegExp(params.regexp)
+      this.validators.push((value) => {
+        if (value && !regexp.test(this.data)) return this.errorMessages.WRONG_FORMAT
+      })
+    }
+    if (params.min_length) this.validators.push((value) => {
+      if (value.length < params.min_length) return this.errorMessages.MIN_LENGTH_REQUIRED(params.min_length)
     })
-    if (params.minLength) this.validators.push((value) => {
-      if (value.length < params.minLength) return this.errorMessages.MIN_LENGTH_REQUIRED(params.minLength)
+    if (params.max_length) this.validators.push((value) => {
+      if (value.length > params.max_length) return this.errorMessages.MAX_LENGTH_REQUIRED(params.max_length)
     })
-    if (params.maxLength) this.validators.push((value) => {
-      if (value.length > params.maxLength) return this.errorMessages.MAX_LENGTH_REQUIRED(params.MaxLength)
-    })
+
+    console.log(name, params, this.validators, params.min_length, params.max_length)
 
     // TODO: change logic for extra bindings
     this.choices = params.choices
@@ -154,6 +160,7 @@ export class Form {
     this._watchers = []
     this.touched = false
     this.errors = []
+    this.loading = false
 
     this.fields = []
     // TODO: parse fields from array
@@ -171,18 +178,26 @@ export class Form {
   }
 
   submit () {
+    this.loading = true;
     const result = this._submit.call(this._vm, this.getData(true))
+    setTimeout(() => {
+      this.loading = false
     if (result) {
       result.catch(error => {
+        this.errors = [error.message]
         this.onSubmitRejected(error)
       })
+
+      result.then((data) => {
+        this.errors = [data.message ? data.message : 'Done!']
+      })
     }
+    }, 2000)
     return result
   }
 
   validate (force = false) {
     if (!force && !this.touched) return
-
     this.fields.forEach(field => field.validate(force))
     if (this._validate) {
       const error = this._validate.call(this._vm, this.getData())
