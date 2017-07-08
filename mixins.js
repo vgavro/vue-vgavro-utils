@@ -93,11 +93,11 @@ export class Field {
         if (value && !regexp.test(this.data)) return this.errorMessages.WRONG_FORMAT
       })
     }
-    if (params.min_length) this.validators.push((value) => {
-      if (value.length < params.min_length) return this.errorMessages.MIN_LENGTH_REQUIRED(params.min_length)
+    if (params.minLength) this.validators.push((value) => {
+      if (value.length < params.minLength) return this.errorMessages.MIN_LENGTH_REQUIRED(params.minLength)
     })
-    if (params.max_length) this.validators.push((value) => {
-      if (value.length > params.max_length) return this.errorMessages.MAX_LENGTH_REQUIRED(params.max_length)
+    if (params.maxLength) this.validators.push((value) => {
+      if (valueLength > params.maxLength) return this.errorMessages.MAX_LENGTH_REQUIRED(params.maxLength)
     })
 
     // TODO: change logic for extra bindings
@@ -178,19 +178,16 @@ export class Form {
   submit () {
     this.loading = true;
     const result = this._submit.call(this._vm, this.getData(true))
-    setTimeout(() => {
-      this.loading = false
     if (result) {
       result.catch(error => {
         this.errors = [error.message]
         this.onSubmitRejected(error)
       })
 
-      result.then((data) => {
-        this.errors = [data.message ? data.message : 'Done!']
+      result.then(() => {
+        this.loading = false;
       })
     }
-    }, 2000)
     return result
   }
 
