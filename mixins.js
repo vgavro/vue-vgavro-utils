@@ -97,7 +97,7 @@ export class Field {
       if (value.length < params.minLength) return this.errorMessages.MIN_LENGTH_REQUIRED(params.minLength)
     })
     if (params.maxLength) this.validators.push((value) => {
-      if (valueLength > params.maxLength) return this.errorMessages.MAX_LENGTH_REQUIRED(params.maxLength)
+      if (value.length > params.maxLength) return this.errorMessages.MAX_LENGTH_REQUIRED(params.maxLength)
     })
 
     // TODO: change logic for extra bindings
