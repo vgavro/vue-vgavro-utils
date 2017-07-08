@@ -58,3 +58,7 @@ export function guessLanguage (availableLanguages, acceptLanguages = []) {
   )
   if (languages.length) return languages[0]
 }
+
+export function isNullOrUndefined(value) {
+  return (value === null || value === undefined)
+}

@@ -1,4 +1,4 @@
-import { timeoutPromise } from './utils'
+import { timeoutPromise, isNullOrUndefined } from './utils'
 
 const CODE_TYPES = {
   '-1': 'REQUEST ERROR',
@@ -58,7 +58,8 @@ export default class Api {
     this.TASK_REQUEST_WAIT_TIMEOUT = settings.TASK_REQUEST_WAIT_TIMEOUT
   }
 
-  request (method, url, {qs = null, data = null}) {
+  request (method, url, {qs = null, data = null, taskWaitTimeout = null,
+                         taskMaxRetries = null} = {}) {
     const options = {
       method,
       mode: this.API_MODE,
@@ -86,7 +87,9 @@ export default class Api {
 
     return window.fetch(joinURL(this.API_URL, url), options).then(response => {
       if (response.status === 202) {
-        return this.getTask(response.data)
+        if (response.data.wait_timeout !== undefined) taskWaitTimeout = response.data.wait_timeout
+        if (response.data.max_retries !== undefined) taskMaxRetries = response.data.max_retries
+        return this.getTask(response.data.task_id, taskWaitTimeout, taskMaxRetries)
       }
 
       if (response.status === 200 && response.headers.get('Content-Type') !== 'application/json') {
@@ -158,18 +161,21 @@ export default class Api {
     return this.request('delete', url, {data: payload})
   }
 
-  getTask (taskId) {
+  getTask (taskId, waitTimeout = null, maxRetries = null) {
+    if (isNullOrUndefined(waitTimeout)) waitTimeout = this.TASK_REQUEST_WAIT_TIMEOUT
+    if (isNullOrUndefined(maxRetries)) maxRetries = this.TASK_REQUEST_MAX_RETRIES
+
     if (this.taskRetries[taskId] === 0) {
       delete this.taskRetries[taskId]
       return this.error(600, `Max task request retries exceeded for ${taskId}`)
     }
     if (!this.taskRetries[taskId]) {
-      this.taskRetries[taskId] = this.TASK_REQUEST_MAX_RETRIES
+      this.taskRetries[taskId] = maxRetries
     }
     this.taskRetries[taskId] -= 1
 
-    return timeoutPromise(this.TASK_REQUEST_WAIT_TIMEOUT).then(() => {
-      return this.get(this.TASK_URL + taskId)
+    return timeoutPromise(waitTimeout).then(() => {
+      return this.get(this.TASK_URL + taskId, {waitTimeout: waitTimeout})
     })
   }
 }
