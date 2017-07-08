@@ -68,7 +68,6 @@ export const EMAIL_REGEXP = /\S+@\S+\.\S+/
 
 export class Field {
   constructor (vm, name, params) {
-    console.log(params)
     this._vm = vm
     this._name = name
     this._watchData = params.watchData || null
@@ -100,8 +99,6 @@ export class Field {
     if (params.max_length) this.validators.push((value) => {
       if (value.length > params.max_length) return this.errorMessages.MAX_LENGTH_REQUIRED(params.max_length)
     })
-
-    console.log(name, params, this.validators, params.min_length, params.max_length)
 
     // TODO: change logic for extra bindings
     this.choices = params.choices
