@@ -179,14 +179,15 @@ export class Form {
     this.loading = true;
     const result = this._submit.call(this._vm, this.getData(true))
     if (result) {
-      result.catch(error => {
+      result.then(() => {
+        this.loading = false;
+      }).catch(error => {
+        this.loading = false;
         this.errors = [error.message]
         this.onSubmitRejected(error)
       })
-
-      result.then(() => {
-        this.loading = false;
-      })
+    } else {
+      this.loading = false;
     }
     return result
   }
