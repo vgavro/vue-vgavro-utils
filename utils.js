@@ -59,6 +59,24 @@ export function guessLanguage (availableLanguages, acceptLanguages = []) {
   if (languages.length) return languages[0]
 }
 
-export function isNullOrUndefined(value) {
+export function isNoU (value) {
+  // You can use == undefined, but it's not obvious and breaks eslint rule "eqeqeq"
   return (value === null || value === undefined)
 }
+
+export function injectComponentOptionsData (vm, data) {
+  // This should be used only in beforeCreate
+  const optionsData = vm.$options.data
+  vm.$options.data = function () {
+    const result = (
+      (typeof optionsData === 'function')
+        ? optionsData.call(this)
+        : optionsData
+    ) || {}
+    Object.assign(result, data)
+    return result
+  }
+}
+
+export const EMAIL_REGEXP = /\S+@\S+\.\S+/
+export const PHONE_REGEXP = /\+[1-9]{1}[0-9]{3,14}/

@@ -1,112 +1,73 @@
-import { pickBy, fromPairs, mapValues, entries } from 'lodash'
+import { entries, fromPairs, pickBy } from 'lodash'
+import { injectComponentOptionsData, isNoU } from '../utils'
 
-function injectOptionsData (vm, data) {
-  const optionsData = vm.$options.data
-  vm.$options.data = function () {
-    const result = (
-      (typeof optionsData === 'function')
-        ? optionsData.call(this)
-        : optionsData
-    ) || {}
-    Object.assign(result, data)
-    return result
-  }
+const ERROR_MESSAGES = {
+  REQUIRED: 'REQUIRED',
+  INVALID: 'INVALID',
+  MIN_LENGTH: (length) => `MIN_LENGTH(${length})`,
+  MAX_LENGTH: (length) => `MAX_LENGTH(${length})`,
+  MIN_VALUE: (val) => `MIN_VALUE(${val})`,
+  MAX_VALUE: (val) => `MAX_VALUE(${val})`,
 }
 
-function createRequest (vm, name, request) {
-  return {
-    inProgress: 0,
-    payload: null,
-    error: null,
-    data: null,
-
-    call (payload) {
-      const result = request.call(vm, payload)
-      if (result) {
-        const self = vm[name]
-
-        self.inProgress += 1
-        self.error = null
-        self.payload = payload
-
-        return result
-          .then(data => {
-            self.inProgress -= 1
-            self.data = data
-            self.error = null
-            return data
-          })
-
-          .catch(error => {
-            self.inProgress -= 1
-            self.data = null
-            self.error = error
-            return Promise.reject(error)
-          })
-      }
-    },
-  }
-}
-
-export const RequestsMixin = {
-  beforeCreate () {
-    injectOptionsData(this, mapValues(
-      this.$options.requests,
-      (value, key) => createRequest(this, key, value)
-    ))
-  },
-}
-
-const DEFAULT_ERROR_MESSAGES = {
-  FIELD_REQUIRED: 'FIELD_REQUIRED',
-  WRONG_FORMAT: 'WRONG_FORMAT',
-  MIN_LENGTH_REQUIRED: (length) => `MIN_LENGTH_REQUIRED(${length})`,
-  MAX_LENGTH_REQUIRED: (length) => `MAX_LENGTH_REQUIRED(${length})`,
-}
-
-export const EMAIL_REGEXP = /\S+@\S+\.\S+/
+export const REQUIRED_STRICT = 'strict'
 
 export class Field {
-  constructor (vm, name, params) {
+  constructor (vm, name, {watchData = null, initial = null, required = false, enabled = null,
+                          getCoerce = null, setCoerce = null, validators = [], regexp = null,
+                          minLength = null, maxLength = null, minValue = null, maxValue = null,
+                          errorMessages = {}, ...meta}) {
     this._vm = vm
     this._name = name
-    this._watchData = params.watchData || null
-    this.initial = params.initial || null
-    this.required = params.required || false
+    this._watchData = watchData
+    this.initial = initial
+    this.required = required
 
-    this._enabled = params.enabled || null
+    this._enabled = enabled
     this.enabled = true
 
-    this.getCoerce = params.getCoerce || ((v) => v)
-    this.setCoerce = params.setCoerce || ((v) => v)
+    this.getCoerce = getCoerce || ((v) => v)
+    this.setCoerce = setCoerce || ((v) => v)
 
-    this.errorMessages = Object.assign({}, DEFAULT_ERROR_MESSAGES,
-                                       params.errorMessages || {})
-    this.validators = params.validators || []
+    this.errorMessages = {...ERROR_MESSAGES, errorMessages}
+    this.validators = validators
 
-    if (this.required) this.validators.push((value) => {
-      if (value === null || value === undefined) return this.errorMessages.FIELD_REQUIRED
-    })
-    if (params.regexp) {
-      const regexp = (params.regexp instanceof RegExp) ? params.regexp : new RegExp(params.regexp)
+    if (this.required) {
       this.validators.push((value) => {
-        if (value && !regexp.test(this.data)) return this.errorMessages.WRONG_FORMAT
+        if ((this.required === true && !value) ||
+            (this.required === REQUIRED_STRICT && isNoU(value))) {
+          return this.errorMessages.REQUIRED
+        }
       })
     }
-    if (params.minLength) this.validators.push((value) => {
-      if (value.length < params.minLength) return this.errorMessages.MIN_LENGTH_REQUIRED(params.minLength)
+    if (regexp) {
+      regexp = (regexp instanceof RegExp) ? regexp : new RegExp(regexp)
+      this.validators.push((value) => {
+        if (value && !regexp.test(this.data)) return this.errorMessages.INVALID
+      })
+    }
+    !isNoU(minLength) && this.validators.push((value) => {
+      if (value.length < minLength) {
+        return this.errorMessages.MIN_LENGTH(minLength)
+      }
     })
-    if (params.maxLength) this.validators.push((value) => {
-      if (value.length > params.maxLength) return this.errorMessages.MAX_LENGTH_REQUIRED(params.maxLength)
+    !isNoU(maxLength) && this.validators.push((value) => {
+      if (value.length > maxLength) {
+        return this.errorMessages.MAX_LENGTH(maxLength)
+      }
+    })
+    !isNoU(minValue) && this.validators.push((value) => {
+      if (this.getCoerce(value) > minValue) {
+        return this.errorMessages.MIN_VALUE(minValue)
+      }
+    })
+    !isNoU(maxValue) && this.validators.push((value) => {
+      if (this.getCoerce(value) > maxValue) {
+        return this.errorMessages.MAX_VALUE(maxValue)
+      }
     })
 
-    // TODO: change logic for extra bindings
-    this.choices = params.choices
-    this.label = params.label
-    this.help = params.help
-    this.type = params.type
-    this.hidden = params.hidden
-
+    this.meta = meta
     this.reset()
   }
 
@@ -152,7 +113,8 @@ export class Field {
 }
 
 export class Form {
-  constructor (vm, name, params) {
+  constructor (vm, name, {fields = {}, submit = null, submitRejected = null,
+                          validate = null, watchFields = null, onCreate = null}) {
     this._vm = vm
     this._name = name
     this._watchers = []
@@ -161,35 +123,37 @@ export class Form {
     this.loading = false
 
     this.fields = []
-    // TODO: parse fields from array
-    entries(params.fields).forEach(([name, params]) => {
-      params.formatError = params.formatError || this.formatError
+    // TODO: parse fields from array, with name attribute
+    entries(fields).forEach(([name, params]) => {
+      // I guess we don't need this
+      // params.formatError = params.formatError || this.formatError
       const field = new Field(vm, name, params)
+      // TODO: throw error if name is already defined on form
+      // For names same as form public attributes or methods, or duplicates
+      // if we're populating array
       this[name] = field
       this.fields.push(field)
     })
 
-    this._submit = params.submit || null
-    this._validate = params.validate || null
-    this._watchFields = params.watchFields || null
-    params.onCreate && params.onCreate.call(this._vm, this)
+    this._submit = submit
+    this._submitRejected = submitRejected
+    this._validate = validate
+    this._watchFields = watchFields
+    onCreate && onCreate.call(this._vm, this)
   }
 
   submit () {
-    this.loading = true;
     const result = this._submit.call(this._vm, this.getData(true))
     if (result) {
-      result.then(() => {
-        this.loading = false;
-      }).catch(error => {
-        this.loading = false;
-        this.errors = [error.message]
-        this.onSubmitRejected(error)
+      this.loading = true
+      return result.then((data) => {
+        this.loading = false
+        return data
+      }, (error) => {
+        this.loading = false
+        if (!this.submitRejected(error)) return Promise.reject(error)
       })
-    } else {
-      this.loading = false;
     }
-    return result
   }
 
   validate (force = false) {
@@ -259,7 +223,8 @@ export class Form {
   get isReady () {
     if (this.errors.length > 0) return false
     return !this.fields.some(f => {
-      return (f.error || (f.required && (f.data === null || f.data === undefined)))
+      return (f.error || (f.required === true && !f.data) ||
+              (f.required === REQUIRED_STRICT && isNoU(f.data)))
     })
   }
 
@@ -303,20 +268,23 @@ export class Form {
     this.watch()
   }
 
-  onSubmitRejected (error) {
+  submitRejected (error) {
     if ([422, 400].includes(error.code) && error.errors) {
       // http://parker0phil.com/img/posts/4xx-status-codes/unprocessable-entity.jpg
       this.setErrors(
         error.errors[''] || [],
         pickBy(error.errors, (value, key) => key)
       )
+      return true
+    } else if (this._submitRejected) {
+      return this._submitRejected(error)
     }
   }
 }
 
 export const FormsMixin = {
   beforeCreate () {
-    injectOptionsData(this, fromPairs(_.map(
+    injectComponentOptionsData(this, fromPairs(_.map(
       entries(this.$options.forms),
       ([name, form]) => [name, new Form(this, name, form)]
     )))
@@ -328,3 +296,5 @@ export const FormsMixin = {
     }
   },
 }
+
+export default FormsMixin

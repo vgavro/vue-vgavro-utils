@@ -1,4 +1,5 @@
-import { timeoutPromise, isNullOrUndefined } from './utils'
+import humps from 'humps'
+import { timeoutPromise, isNoU } from './utils'
 
 const CODE_TYPES = {
   '-1': 'REQUEST ERROR',
@@ -8,13 +9,15 @@ const CODE_TYPES = {
   '404': 'NOT FOUND',
   '422': 'UNPROCESSABLE ENTITY',
   '500': 'INTERNAL SERVER ERROR',
+  '502': 'BAD GATEWAY',
+  '504': 'GATEWAY TIMEOUT',
   '600': 'TASK RETRIES EXCEEDED',
 }
 
 function encodeURIObject (qs) {
-    return Object.keys(qs)
-                 .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(qs[k]))
-                 .join('&')
+  return Object.keys(qs)
+               .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(qs[k]))
+               .join('&')
 }
 
 function _joinURL (base, path) {
@@ -31,14 +34,12 @@ function joinURL (...urls) {
 }
 
 function getFlaskDebugURL (flaskDebuggerURL, fetchOptions) {
-    const debugPayload = {
-      url: fetchOptions.url,
-      method: fetchOptions.options.method,
-    }
-    if (fetchOptions.options.body)
-      debugPayload.data = fetchOptions.options.body
-
-    return flaskDebuggerURL + '?' + encodeURIObject(debugPayload)
+  const debugPayload = {
+    url: fetchOptions.url,
+    method: fetchOptions.options.method,
+  }
+  if (fetchOptions.options.body) debugPayload.data = fetchOptions.options.body
+  return flaskDebuggerURL + '?' + encodeURIObject(debugPayload)
 }
 
 export default class Api {
@@ -67,10 +68,12 @@ export default class Api {
     }
 
     if (qs) {
+      humps.decamelizeKeys(qs)
       url = url + '?' + encodeURIObject(qs)
     }
 
     if (data) {
+      humps.decamelizeKeys(data)
       options.body = JSON.stringify(data)
       options.headers = new window.Headers({
         'Content-Type': 'application/json; charset=UTF-8',
@@ -86,13 +89,8 @@ export default class Api {
     }
 
     return window.fetch(joinURL(this.API_URL, url), options).then(response => {
-      if (response.status === 202) {
-        if (response.data.wait_timeout !== undefined) taskWaitTimeout = response.data.wait_timeout
-        if (response.data.max_retries !== undefined) taskMaxRetries = response.data.max_retries
-        return this.getTask(response.data.task_id, taskWaitTimeout, taskMaxRetries)
-      }
-
-      if (response.status === 200 && response.headers.get('Content-Type') !== 'application/json') {
+      if (response.status === 200 &&
+          response.headers.get('Content-Type') !== 'application/json') {
         const disposition = response.headers.get('Content-Disposition') || ''
         if (disposition && disposition.startsWith('attachment;')) {
           // Getting filename
@@ -107,22 +105,33 @@ export default class Api {
           // TODO: most comprehensive solution with explicit content-type, charset and
           // possible some browser compatibility may be found here
           // https://stackoverflow.com/q/37095233/450103
-          response.blob().then((data) => {
+          return response.blob().then((data) => {
             const link = document.createElement('a')
             link.href = window.URL.createObjectURL(data)
             link.download = filename
             link.click()
+            return data
           })
         }
 
         return response.blob()
       }
 
-      if (response.status === 200 || response.status === 201) {
-        return response.json()
+      if (response.status === 202) {
+        const data = humps.camelizeKeys(data)
+        taskWaitTimeout = !isNoU(data.waitTimeout) ? data.waitTimeout : taskWaitTimeout
+        taskMaxRetries = !isNoU(data.maxRetries) ? data.maxRetries : taskMaxRetries
+        return this.getTask(data.taskId, taskWaitTimeout, taskMaxRetries)
+      }
+
+      if (response.status >= 200 && response.status < 300) {
+        return response.json().then(data => {
+          return humps.camelizeKeys(data)
+        })
       }
 
       return response.json().then(data => {
+        data = humps.camelizeKeys(data)
         if (data.error) {
           Object.assign(data.error, fetchErrorOptions)
           return this.error(data.error.code, data.error.message, data.error)
@@ -130,7 +139,6 @@ export default class Api {
         Object.assign(data, fetchErrorOptions)
         return this.error(response.status, response.statusText, data)
       }, (error) => {
-
         Object.assign(error, fetchErrorOptions)
         return this.error(response.status, response.statusText, error)
       })
@@ -142,7 +150,7 @@ export default class Api {
 
   error (code, message, data = {}) {
     console.log(`API error ${code}: ${message}`, data)
-    data.code_type = data.code_type || CODE_TYPES[code] || null
+    data.codeType = data.codeType || CODE_TYPES[code] || null
     Object.assign(data, {code, message})
     this.errorHandlers.forEach((callback) => callback(data))
     return Promise.reject(data)
@@ -161,15 +169,14 @@ export default class Api {
     return this.request('delete', url, {data: payload})
   }
 
-  getTask (taskId, waitTimeout = null, maxRetries = null) {
-    if (isNullOrUndefined(waitTimeout)) waitTimeout = this.TASK_REQUEST_WAIT_TIMEOUT
-    if (isNullOrUndefined(maxRetries)) maxRetries = this.TASK_REQUEST_MAX_RETRIES
+  getTask (taskId, waitTimeout, maxRetries) {
+    waitTimeout = !isNoU(waitTimeout) ? waitTimeout : this.TASK_REQUEST_WAIT_TIMEOUT
+    maxRetries = !isNoU(maxRetries) ? maxRetries : this.TASK_REQUEST_MAX_RETRIES
 
     if (this.taskRetries[taskId] === 0) {
       delete this.taskRetries[taskId]
       return this.error(600, `Max task request retries exceeded for ${taskId}`)
-    }
-    if (!this.taskRetries[taskId]) {
+    } else if (!this.taskRetries[taskId]) {
       this.taskRetries[taskId] = maxRetries
     }
     this.taskRetries[taskId] -= 1
