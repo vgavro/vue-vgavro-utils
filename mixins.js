@@ -160,7 +160,6 @@ export class Form {
     this.touched = false
     this.errors = []
     this.loading = false
-    this.formStatus = ''
 
     this.fields = []
     // TODO: parse fields from array
@@ -183,7 +182,7 @@ export class Form {
     if (result) {
       result.then(() => {
         this.loading = false;
-      }).catch(error => {
+      }, (error) => {
         this.loading = false;
         this.errors = [error.message]
         this.onSubmitRejected(error)

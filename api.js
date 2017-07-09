@@ -107,11 +107,12 @@ export default class Api {
           // TODO: most comprehensive solution with explicit content-type, charset and
           // possible some browser compatibility may be found here
           // https://stackoverflow.com/q/37095233/450103
-          response.blob().then((data) => {
+          return response.blob().then((data) => {
             const link = document.createElement('a')
             link.href = window.URL.createObjectURL(data)
             link.download = filename
             link.click()
+            return data
           })
         }
 
