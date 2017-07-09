@@ -106,6 +106,7 @@ export class Field {
     this.help = params.help
     this.type = params.type
     this.hidden = params.hidden
+    this.places = params.places
 
     this.reset()
   }
@@ -159,6 +160,7 @@ export class Form {
     this.touched = false
     this.errors = []
     this.loading = false
+    this.formStatus = ''
 
     this.fields = []
     // TODO: parse fields from array
