@@ -13,7 +13,7 @@ export default {
 
       el.onclick = (ev) => {
         el.onclick = null
-        //el.remove()
+        // el.remove()
         this.popupClose(popup)
       }
 
@@ -39,7 +39,6 @@ export default {
         fn: (data) => {
           const index = this.popups.indexOf(popup)
           data.offsets.popper.top += index * POPUP_OFFSET
-          console.log(data, document.body.clientHeight)
           return data
         },
       })

@@ -140,9 +140,9 @@ export default class Api {
         }
         Object.assign(data, fetchErrorOptions)
         return this.error(response.status, response.statusText, data)
-      }, (error) => {
-        Object.assign(error, fetchErrorOptions)
-        return this.error(response.status, response.statusText, error)
+      }, (decodeError) => {
+        const data = {decodeError, ...fetchErrorOptions}
+        return this.error(response.status, response.statusText, data)
       })
     }, (error) => {
       // network-related problems
