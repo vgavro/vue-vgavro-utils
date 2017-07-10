@@ -83,6 +83,6 @@ function setAppErrorHandler (w, errorBoxCls, errorCallback) {
     if (ev.reason) {
       return w.onerror && w.onerror(null, null, null, null, ev.reason)
     }
-    w.onerror && w.onerror('Unhandled Rejection (unknown reason)')
+    // w.onerror && w.onerror('Unhandled Rejection (unknown reason)')
   });
 };

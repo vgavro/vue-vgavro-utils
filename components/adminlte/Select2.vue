@@ -29,7 +29,7 @@ export default {
   watch: {
     value: function (value) {
       // update value
-      $(this.$el).val(value).trigger('change');
+      jQuery(this.$el).val(value).trigger('change')
     },
 
     // uncomment this if we want to update options on parent changes
@@ -40,6 +40,6 @@ export default {
   },
 
   destroyed: function () {
-    $(this.$el).off().select2('destroy')
+    jQuery(this.$el).off().select2('destroy')
   }
 }

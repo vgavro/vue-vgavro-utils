@@ -6,8 +6,8 @@ const ERROR_MESSAGES = {
   INVALID: 'INVALID',
   MIN_LENGTH: (length) => `MIN_LENGTH(${length})`,
   MAX_LENGTH: (length) => `MAX_LENGTH(${length})`,
-  MIN_VALUE: (val) => `MIN_VALUE(${val})`,
-  MAX_VALUE: (val) => `MAX_VALUE(${val})`,
+  MIN_VALUE: (value) => `MIN_VALUE(${value})`,
+  MAX_VALUE: (value) => `MAX_VALUE(${value})`,
 }
 
 export const REQUIRED_STRICT = 'strict'
@@ -29,7 +29,7 @@ export class Field {
     this.getCoerce = getCoerce || ((v) => v)
     this.setCoerce = setCoerce || ((v) => v)
 
-    this.errorMessages = {...ERROR_MESSAGES, errorMessages}
+    this.errorMessages = {...ERROR_MESSAGES, ...errorMessages}
     this.validators = validators
 
     if (this.required) {
@@ -41,29 +41,33 @@ export class Field {
       })
     }
     if (regexp) {
-      regexp = (regexp instanceof RegExp) ? regexp : new RegExp(regexp)
+      this.regexp = (regexp instanceof RegExp) ? regexp : new RegExp(regexp)
       this.validators.push((value) => {
-        if (value && !regexp.test(this.data)) return this.errorMessages.INVALID
+        if (value && !this.regexp.test(this.data)) return this.errorMessages.INVALID
       })
     }
+    this.minLength = minLength
     !isNoU(minLength) && this.validators.push((value) => {
-      if (value.length < minLength) {
-        return this.errorMessages.MIN_LENGTH(minLength)
+      if (value.length < this.minLength) {
+        return this.errorMessages.MIN_LENGTH(this.minLength)
       }
     })
+    this.maxLength = maxLength
     !isNoU(maxLength) && this.validators.push((value) => {
-      if (value.length > maxLength) {
-        return this.errorMessages.MAX_LENGTH(maxLength)
+      if (value.length > this.maxLength) {
+        return this.errorMessages.MAX_LENGTH(this.maxLength)
       }
     })
+    this.minValue = minValue
     !isNoU(minValue) && this.validators.push((value) => {
-      if (this.getCoerce(value) > minValue) {
-        return this.errorMessages.MIN_VALUE(minValue)
+      if (this.getCoerce(value) > this.minValue) {
+        return this.errorMessages.MIN_VALUE(this.minValue)
       }
     })
+    this.maxValue = maxValue
     !isNoU(maxValue) && this.validators.push((value) => {
-      if (this.getCoerce(value) > maxValue) {
-        return this.errorMessages.MAX_VALUE(maxValue)
+      if (this.getCoerce(value) > this.maxValue) {
+        return this.errorMessages.MAX_VALUE(this.maxValue)
       }
     })
 
@@ -269,7 +273,7 @@ export class Form {
   }
 
   submitRejected (error) {
-    if ([422, 400].includes(error.code) && error.errors) {
+    if ([422, 400].includes(error ? error.code : null) && error.errors) {
       // http://parker0phil.com/img/posts/4xx-status-codes/unprocessable-entity.jpg
       this.setErrors(
         error.errors[''] || [],
@@ -277,7 +281,7 @@ export class Form {
       )
       return true
     } else if (this._submitRejected) {
-      return this._submitRejected(error)
+      return this._submitRejected.call(this._vm, error)
     }
   }
 }

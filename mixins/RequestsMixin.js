@@ -1,5 +1,5 @@
 import { mapValues } from 'lodash'
-import { injectComponentOptionsData } from './utils'
+import { injectComponentOptionsData } from '../utils'
 
 function createRequest (vm, name, request) {
   return {

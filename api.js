@@ -68,11 +68,13 @@ export default class Api {
     }
 
     if (qs) {
+      qs = JSON.parse(JSON.stringify(qs))  // clone before decamelize
       humps.decamelizeKeys(qs)
       url = url + '?' + encodeURIObject(qs)
     }
 
     if (data) {
+      data = JSON.parse(JSON.stringify(data)) // clone before decamelize
       humps.decamelizeKeys(data)
       options.body = JSON.stringify(data)
       options.headers = new window.Headers({
@@ -152,8 +154,15 @@ export default class Api {
     console.log(`API error ${code}: ${message}`, data)
     data.codeType = data.codeType || CODE_TYPES[code] || null
     Object.assign(data, {code, message})
-    this.errorHandlers.forEach((callback) => callback(data))
-    return Promise.reject(data)
+
+    let reject = true
+    this.errorHandlers.forEach((callback) => {
+      if (callback(data) && reject) reject = false
+    })
+    if (reject) return Promise.reject(data)
+    // We should reject anyway, because otherwise
+    // it would be interpreted as fulfilled
+    return Promise.reject(null)
   }
 
   get (url, payload) {
