@@ -6,40 +6,44 @@ select
 <script>
 import jQuery from 'jquery'
 
-// from https://vuejs.org/v2/examples/select2.html
-// see select2 docs on http://select2.github.io/select2/#documentation
+// Current documentation (v4):
+// https://select2.github.io/options.html
+
+// NOTE: example for select2 v3
+// https://vuejs.org/v2/examples/select2.html
+// there is documentation for old (v3) version:
+// http://select2.github.io/select2/#documentation
 
 export default {
-  props: ['options', 'value'],
+  props: ['value', 'data', 'options'],
 
-  mounted: function () {
-    var vm = this
-
-    jQuery(this.$el)
-      // init select2
-      .select2({ data: this.options })
-      .val(this.value)
-      .trigger('change')
-      // emit event on change.
-      .on('change', function () {
-        vm.$emit('input', this.value)
-      })
+  mounted () {
+    this.bindSelect2()
+    jQuery(this.$el).on('change', (ev) => {
+      this.$emit('input', ev.target.value)
+    })
   },
 
   watch: {
-    value: function (value) {
-      // update value
+    value (value) {
       jQuery(this.$el).val(value).trigger('change')
     },
-
-    // uncomment this if we want to update options on parent changes
-    // options: function (options) {
-    //   // update options
-    //   $(this.$el).select2({ data: options })
-    // }
+    '$props.data' () {
+      jQuery(this.$el).empty()
+      this.bindSelect2()
+    },
   },
 
-  destroyed: function () {
+  methods: {
+    bindSelect2 () {
+      jQuery(this.$el).select2({data: this.$props.data, ...this.options})
+        .val(this.value)
+        .trigger('change')
+    },
+  },
+
+  destroyed () {
     jQuery(this.$el).off().select2('destroy')
   }
 }
+</script>
