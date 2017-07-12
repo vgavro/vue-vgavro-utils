@@ -1,5 +1,5 @@
 <template lang="pug">
-select
+select.select2
   slot
 </template>
 
@@ -10,14 +10,18 @@ import jQuery from 'jquery'
 // see select2 docs on http://select2.github.io/select2/#documentation
 
 export default {
-  props: ['options', 'value'],
+  props: ['data', 'value', 'templateResult', 'templateSelection', 'options'],
 
-  mounted: function () {
+  mounted () {
     var vm = this
-
     jQuery(this.$el)
       // init select2
-      .select2({ data: this.options })
+      .select2({
+        data: this.data,
+        templateResult: this.templateResult,
+        templateSelection: this.templateSelection,
+        ...this.options
+      })
       .val(this.value)
       .trigger('change')
       // emit event on change.
@@ -27,7 +31,7 @@ export default {
   },
 
   watch: {
-    value: function (value) {
+    value (value) {
       // update value
       jQuery(this.$el).val(value).trigger('change')
     },
@@ -39,7 +43,8 @@ export default {
     // }
   },
 
-  destroyed: function () {
+  destroyed () {
     jQuery(this.$el).off().select2('destroy')
   }
 }
+</script>
