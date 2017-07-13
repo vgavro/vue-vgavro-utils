@@ -1,4 +1,5 @@
 import { intersection } from 'lodash'
+import Vue from 'vue'
 
 export function timeoutPromise (time) {
   return new Promise((resolve) => {
@@ -76,6 +77,12 @@ export function injectComponentOptionsData (vm, data) {
     Object.assign(result, data)
     return result
   }
+}
+
+export function vNodeToElement (vNode) {
+  const vm = new Vue({functional: true, render: () => vNode[0]})
+  vm.$mount()
+  return vm.$el
 }
 
 export const EMAIL_REGEXP = /\S+@\S+\.\S+/

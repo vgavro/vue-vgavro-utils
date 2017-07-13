@@ -5,6 +5,7 @@ select.select2
 
 <script>
 import jQuery from 'jquery'
+import { vNodeToElement } from 'vue-vgavro-utils/utils'
 
 // Current documentation (v4):
 // https://select2.github.io/options.html
@@ -36,7 +37,24 @@ export default {
 
   methods: {
     bindSelect2 () {
-      jQuery(this.$el).select2({data: this.$props.data, ...this.options})
+      let templateResult = null
+      if (this.$scopedSlots.item) {
+        templateResult = (item) => {
+          return vNodeToElement(this.$scopedSlots.item(item))
+        }
+      }
+      let templateSelection = templateResult
+      if (this.$scopedSlots['item-selected']) {
+        templateSelection = (item) => {
+          return vNodeToElement(this.$scopedSlots['item-selected'](item))
+        }
+      }
+      jQuery(this.$el).select2({
+        data: this.$props.data,
+        templateResult: templateResult,
+        templateSelection: templateSelection,
+        ...this.options
+      })
         .val(this.value)
         .trigger('change')
     },
