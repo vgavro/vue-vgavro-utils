@@ -35,7 +35,6 @@ export default {
       const intlTelInputScript = document.createElement('script')
       intlTelInputScript.src = config.intlTelInputUtilsUrl
       intlTelInputScript.onload = () => {
-        console.log('loaded')
         LIBPHONENUMBER_UTILS_LOADED = true
       }
       document.head.appendChild(intlTelInputScript)
