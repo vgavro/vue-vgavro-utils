@@ -16,6 +16,23 @@ export function defer () {
   return deferred
 }
 
+export function makeCancelable (promise, rejectVal = {canceled: true}) {
+// From https://stackoverflow.com/a/37492399/450103
+  let canceled = false
+
+  const wrappedPromise = new Promise((resolve, reject) => {
+    promise.then((val) =>
+      canceled ? reject(rejectVal) : resolve(val)
+    )
+    promise.catch((error) =>
+      canceled ? reject(rejectVal) : reject(error)
+    )
+  })
+
+  wrappedPromise.cancel = () => canceled = true
+  return wrappedPromise
+}
+
 export function range (start, stop, step = 1) {
   if (!stop) {
     stop = start
