@@ -115,7 +115,6 @@ export default class Api {
             return data
           })
         }
-
         return response.blob()
       }
 
