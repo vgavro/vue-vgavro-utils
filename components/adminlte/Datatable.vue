@@ -1,6 +1,6 @@
 <template lang="pug">
 div
-  div(style="height: 45px")
+  div(style="height: 45px" v-if="enableSearch")
     .input-group.pull-left
       span.input-group-addon
         i.fa.fa-search
@@ -23,12 +23,12 @@ div
     thead
       tr
         // columns
-        th.table-id.checkboxElement(v-if="actions.length", @click="allSelect")
+        th.table-id.checkboxElement(v-if="actions.length || enableCheck", @click="allSelect")
           input(type='checkbox', :class="{noSelect: !allSelected}", :checked="selectedCount > 0 || allSelected", :disabled="!items.length")
         slot
     tbody
       tr.table-id(v-for="item in items")
-        td.checkboxElement(v-if="actions.length", @click="selectElement(item.id)")
+        td.checkboxElement(v-if="actions.length || enableCheck", @click="selectItem(item.id)")
           input(type="checkbox", :value="item.id", :checked="allSelected || itemSelected.indexOf(item.id) != -1")
         td(v-for="column in columns_")
           datatable-cell(:item="item", :column="column")
@@ -55,7 +55,7 @@ div
       | &nbsp;
       | {{ selectedCount }}
 
-    div.btn-group(style="margin-top: -3px;")
+    div.btn-group(style="margin-top: -3px;" v-if="actions.length")
       button.btn.btn-default.dropdown-toggle(:disabled="!(actions.length && (selectedCount > 0 || allSelected))", data-toggle="dropdown", aria-expanded="false")
         | Select action
         | &nbsp;
@@ -64,7 +64,7 @@ div
         li
            a(href="#" v-for="action in actions", @click="runAction(action.callback)") {{ action.name }}
 
-    div.pull-right
+    div.pull-right(v-if="(this.pages > 1) || this.alwaysShowPages")
       i.fa.fa-eye-slash(style="margin-right: 5px")
       select.form-control(v-model="perPage")
         option(v-for="perPage_ in perPageChoices") {{ perPage_ }}
@@ -142,7 +142,21 @@ export default {
     initQuery: {
       type: Object,
       default: () => {}
-    }
+    },
+    alwaysShowPages: {
+      // only showing pages if more than one if enabled
+      type: Boolean,
+      default: false,
+    },
+    enableCheck: {
+      // automatic enabled on actions anyway
+      type: Boolean,
+      default: false,
+    },
+    enableSearch: {
+      type: Boolean,
+      default: true,
+    },
   },
 
   data () {
@@ -167,11 +181,7 @@ export default {
   computed: {
     selectedCount () {
       if (this.allSelected) {
-        if (this.filteredCount) {
-          return this.filteredCount
-        } else {
-          return this.totalCount
-        }
+        return this.filteredCount || this.totalCount
       } else {
         return this.itemSelected.length
       }
@@ -288,19 +298,26 @@ export default {
       }
     },
 
-    selectElement (id) {
+    selectItem (id) {
       if (this.allSelected) {
-        this.itemSelected = [id]
+        if ((this.filteredCount || this.totalCount) > 1) {
+          this.itemSelected = [id]
+        } else {
+          this.itemSelected = []
+        }
         this.allSelected = false
-        return
-      }
-      if (this.itemSelected.indexOf(id) !== -1) {
+      } else if (this.itemSelected.indexOf(id) !== -1) {
         let index = this.itemSelected.indexOf(id)
         this.itemSelected.splice(index, 1)
       } else {
         this.itemSelected.push(id)
       }
+
+      if (this.itemSelected.length === (this.filteredCount || this.totalCount)) {
+        this.allSelected = true
+      }
     },
+
     runAction (callback) {
       let users = this.itemSelected
       if (this.allSelected) users = null
@@ -446,9 +463,8 @@ input[type="checkbox"] {
 }
 
 .progress-bar {
-  height: 3px;
-  margin-bottom: 15px;
   width: 100%;
+  height: 3px;
   background-color: transparent;
 }
 </style>

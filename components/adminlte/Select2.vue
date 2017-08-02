@@ -132,3 +132,12 @@ export default {
   }
 }
 </script>
+<style>
+/* override admin-lte default focus style, obviously for previous select2 version */
+/* TODO: improve it with color change on focus, but not so buggy as for now */
+.select2-dropdown .select2-search__field:focus,
+.select2-search--inline .select2-search__field:focus {
+    outline: 0;
+    border: 0px;
+}
+</style>
