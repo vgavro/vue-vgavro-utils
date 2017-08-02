@@ -24,7 +24,7 @@ const searchingBox = jQuery('<span style="color: #999">Searching' +
 export default {
   props: {
     value: String,
-    data: Object,  // component will be reinitialized on data change
+    data: Array,  // component will be reinitialized on data change
 
     // acts like multiselect, but clears on selection.
     // @select event may be binded.
@@ -38,15 +38,18 @@ export default {
 
     // proxies to select2 options
     minimumInputLength: Number,
+    minimumResultsForSearch: Number,
     placeholder: String,
     multiselect: Boolean,
 
     options: Object,
   },
 
-  data: {
-    asyncLoading: false,
-  },
+  // data () {
+  //   return {
+  //     asyncLoading: false,
+  //   }
+  // },
 
   mounted () {
     this.bindSelect2()
@@ -114,16 +117,16 @@ export default {
                 return resolve({results: this.asyncCache[params.data.term]})
               }
 
-              this.asyncLoading = true
+              // this.asyncLoading = true
               this._promise = makeCancelable(timeoutPromise(this.asyncDelay).then(() => {
                 return this.asyncRequest(params.data.term)
               }))
               this._promise.then(data => {
-                this.asyncLoading = false
+                // this.asyncLoading = false
                 this.asyncCache[params.data.term] = data
                 resolve({results: data})
               }, () => {
-                this.asyncLoading = false
+                // this.asyncLoading = false
                 reject()
               })
               return this._promise
@@ -132,6 +135,7 @@ export default {
         },
 
         minimumInputLength: this.minimumInputLength,
+        minimumResultsForSearch: this.minimumResultsForSearch,
         placeholder: this.placeholder,
         ...this.multiselect && {multiselect: true},
         ...this.options,
