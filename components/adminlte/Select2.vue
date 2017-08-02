@@ -5,7 +5,7 @@ select.select2
 
 <script>
 import jQuery from 'jquery'
-import { vNodeToElement, makeCancelable } from 'vue-vgavro-utils/utils'
+import { vNodeToElement, timeoutPromise, makeCancelable } from 'vue-vgavro-utils/utils'
 
 // Current documentation (v4):
 // https://select2.github.io/options.html
@@ -17,6 +17,9 @@ import { vNodeToElement, makeCancelable } from 'vue-vgavro-utils/utils'
 // https://vuejs.org/v2/examples/select2.html
 // there is documentation for old (v3) version:
 // http://select2.github.io/select2/#documentation
+
+const searchingBox = jQuery('<span style="color: #999">Searching' +
+                            '<span class="dotdotdot"></span></span>')
 
 export default {
   props: {
@@ -50,6 +53,9 @@ export default {
     jQuery(this.$el).on('change', (ev) => {
       this.$emit('input', ev.target.value)
     })
+    if (this.asyncRequest) {
+      this.asyncCache = {}
+    }
   },
 
   watch: {
@@ -72,7 +78,7 @@ export default {
             // No idea how to do it better for now.
             // item.text === 'Searching…' may be more specific, but obviously
             // may be broken on i18n.
-            return
+            return searchingBox
           }
           return vNodeToElement(this.$scopedSlots.item(item))
         }
@@ -85,6 +91,13 @@ export default {
       }
 
       jQuery(this.$el).select2({
+        // temporary fix for stupid "errorLoading" on search in progress
+        // see https://github.com/select2/select2/issues/4355#issuecomment-281254991
+        // and this pull request https://github.com/select2/select2/pull/4356
+        // obviously would be merged with select2 4.0.4?.....
+        // NOTE: sometime it may really be some error, but no obvious reasons
+        language: {errorLoading: () => searchingBox},
+
         ...this.$props.data && {data: this.$props.data},
 
         ...this.simpleSearchbox && {multiple: true},
@@ -93,13 +106,21 @@ export default {
 
         ...this.asyncRequest && {
           ajax: {
-            delay: this.asyncDelay,
             transport: (params, resolve, reject) => {
-              this.asyncLoading = true
               if (this._promise) this._promise.cancel()
-              this._promise = makeCancelable(this.asyncRequest(params.data.term))
+
+              if (this.asyncCache[params.data.term]) {
+                console.log('hitting cache', params.data.term)
+                return resolve({results: this.asyncCache[params.data.term]})
+              }
+
+              this.asyncLoading = true
+              this._promise = makeCancelable(timeoutPromise(this.asyncDelay).then(() => {
+                return this.asyncRequest(params.data.term)
+              }))
               this._promise.then(data => {
                 this.asyncLoading = false
+                this.asyncCache[params.data.term] = data
                 resolve({results: data})
               }, () => {
                 this.asyncLoading = false
@@ -134,10 +155,35 @@ export default {
 </script>
 <style>
 /* override admin-lte default focus style, obviously for previous select2 version */
-/* TODO: improve it with color change on focus, but not so buggy as for now */
+/* TODO: improve it with color change on focus, but not so buggy as it for now */
 .select2-dropdown .select2-search__field:focus,
 .select2-search--inline .select2-search__field:focus {
     outline: 0;
     border: 0px;
+}
+
+/* for searchingBox */
+.dotdotdot:after {
+  font-weight: 300;
+  content: '...';
+  display: inline-block;
+  width: 20px;
+  text-align: left;
+  animation: dotdotdot 1.5s linear infinite;
+}
+
+@keyframes dotdotdot {
+  0% {
+    content: '...';
+  }
+  25% {
+    content: '';
+  }
+  50% {
+    content: '.';
+  }
+  75% {
+    content: '..';
+  }
 }
 </style>

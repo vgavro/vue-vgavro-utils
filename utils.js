@@ -78,7 +78,9 @@ export function guessLanguage (availableLanguages, acceptLanguages = []) {
 }
 
 export function isNoU (value) {
-  // You can use == undefined, but it's not obvious and breaks eslint rule "eqeqeq"
+  // TODO: remove it, check related code and use == null
+  // (as it works as expected and don't break eqeqeq rule)
+  // DEPRECATED NOTE: You can use == undefined, but it's not obvious and breaks eslint rule "eqeqeq"
   return (value === null || value === undefined)
 }
 
