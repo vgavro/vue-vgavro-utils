@@ -1,10 +1,22 @@
 import { intersection } from 'lodash'
 import Vue from 'vue'
 
-export function timeoutPromise (time) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, time)
-  })
+export function timeoutPromise (time, value) {
+  let timeout = null
+
+  const promise = makeCancelable(new Promise((resolve, reject) => {
+    timeout = setTimeout(() => {
+      if (typeof value === 'function') value = value()
+      resolve(value)
+    }, time)
+  }))
+
+  const _cancel = promise.cancel
+  promise.cancel = () => {
+    clearTimeout(timeout)
+    _cancel()
+  }
+  return promise
 }
 
 export function defer () {
@@ -16,16 +28,16 @@ export function defer () {
   return deferred
 }
 
-export function makeCancelable (promise, rejectVal = {canceled: true}) {
+export function makeCancelable (promise, reason = {canceled: true}) {
 // From https://stackoverflow.com/a/37492399/450103
   let canceled = false
 
   const wrappedPromise = new Promise((resolve, reject) => {
     promise.then((val) =>
-      canceled ? reject(rejectVal) : resolve(val)
+      canceled ? reject(reason) : resolve(val)
     )
     promise.catch((error) =>
-      canceled ? reject(rejectVal) : reject(error)
+      canceled ? reject(reason) : reject(error)
     )
   })
 

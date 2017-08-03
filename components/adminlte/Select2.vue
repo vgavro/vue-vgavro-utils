@@ -5,7 +5,7 @@ select.select2
 
 <script>
 import jQuery from 'jquery'
-import { vNodeToElement, timeoutPromise, makeCancelable } from 'vue-vgavro-utils/utils'
+import { vNodeToElement, timeoutPromise } from 'vue-vgavro-utils/utils'
 
 // Current documentation (v4):
 // https://select2.github.io/options.html
@@ -33,7 +33,16 @@ export default {
     asyncRequest: Function,
     asyncDelay: {
       type: Number,
-      default: 500,
+      default: 1000,
+    },
+
+    idAttr: {
+      type: String,
+      default: 'id',
+    },
+    textAttr: {
+      type: String,
+      default: 'text',
     },
 
     // proxies to select2 options
@@ -44,12 +53,6 @@ export default {
 
     options: Object,
   },
-
-  // data () {
-  //   return {
-  //     asyncLoading: false,
-  //   }
-  // },
 
   mounted () {
     this.bindSelect2()
@@ -72,6 +75,17 @@ export default {
   },
 
   methods: {
+    mapIdTextAttrs (data) {
+      if (this.idAttr === 'id' && this.textAttr === 'text') return data
+      return data.map(item => {
+        return {
+          ...item,
+          id: item[this.idAttr],
+          text: item[this.textAttr],
+        }
+      })
+    },
+
     bindSelect2 () {
       let templateResult = null
       if (this.$scopedSlots.item) {
@@ -94,14 +108,7 @@ export default {
       }
 
       jQuery(this.$el).select2({
-        // temporary fix for stupid "errorLoading" on search in progress
-        // see https://github.com/select2/select2/issues/4355#issuecomment-281254991
-        // and this pull request https://github.com/select2/select2/pull/4356
-        // obviously would be merged with select2 4.0.4?.....
-        // NOTE: sometime it may really be some error, but no obvious reasons
-        language: {errorLoading: () => searchingBox},
-
-        ...this.$props.data && {data: this.$props.data},
+        ...this.$props.data && {data: this.mapIdTextAttrs(this.$props.data)},
 
         ...this.simpleSearchbox && {multiple: true},
         ...templateResult && {templateResult},
@@ -110,25 +117,31 @@ export default {
         ...this.asyncRequest && {
           ajax: {
             transport: (params, resolve, reject) => {
-              if (this._promise) this._promise.cancel()
-
-              if (this.asyncCache[params.data.term]) {
-                console.log('hitting cache', params.data.term)
-                return resolve({results: this.asyncCache[params.data.term]})
+              if (this._promise) {
+                this._promise.cancel()
               }
 
-              // this.asyncLoading = true
-              this._promise = makeCancelable(timeoutPromise(this.asyncDelay).then(() => {
-                return this.asyncRequest(params.data.term)
-              }))
-              this._promise.then(data => {
-                // this.asyncLoading = false
-                this.asyncCache[params.data.term] = data
-                resolve({results: data})
-              }, () => {
-                // this.asyncLoading = false
-                reject()
+              if (this.asyncCache[params.data.term]) {
+                return Promise.resolve(
+                  resolve({results: this.asyncCache[params.data.term]})
+                )
+              }
+
+              this._promise = timeoutPromise(this.asyncDelay, () => {
+                // will be invoked even on cancel
+                // if (this._promise.term !== params.data.term) return
+                return this.asyncRequest(params.data.term).then(data => {
+                  data = this.mapIdTextAttrs(data)
+                  this.asyncCache[params.data.term] = data
+                  return data
+                })
               })
+              this._promise.then(data => {
+                resolve({results: data})
+              }, (err) => {
+                if (!err.canceled) reject()
+              })
+              this._promise.term = params.data.term
               return this._promise
             },
           },
