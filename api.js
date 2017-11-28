@@ -1,18 +1,5 @@
 import humps from 'humps'
-import { timeoutPromise, isNoU } from './utils'
-
-const CODE_TYPES = {
-  '-1': 'REQUEST ERROR',
-  '200': 'OK',
-  '202': 'ACCEPTED',
-  '403': 'FORBIDDEN',
-  '404': 'NOT FOUND',
-  '422': 'UNPROCESSABLE ENTITY',
-  '500': 'INTERNAL SERVER ERROR',
-  '502': 'BAD GATEWAY',
-  '504': 'GATEWAY TIMEOUT',
-  '600': 'TASK RETRIES EXCEEDED',
-}
+import { timeoutPromise } from './utils'
 
 function encodeURIObject (qs) {
   return Object.keys(qs)
@@ -42,8 +29,32 @@ function getFlaskDebugURL (flaskDebuggerURL, fetchOptions) {
   return flaskDebuggerURL + '?' + encodeURIObject(debugPayload)
 }
 
+export const CODE_TYPES = {
+  '-1': 'REQUEST ERROR',
+  '200': 'OK',
+  '202': 'ACCEPTED',
+  '403': 'FORBIDDEN',
+  '404': 'NOT FOUND',
+  '422': 'UNPROCESSABLE ENTITY',
+  '500': 'INTERNAL SERVER ERROR',
+  '502': 'BAD GATEWAY',
+  '504': 'GATEWAY TIMEOUT',
+  '600': 'TASK TIMEOUT',  // on exceeded retries of checking async task
+}
+
+export class ApiError {
+  constructor (code, message, data) {
+    this.code = code
+    this.message = message
+    this.codeType = CODE_TYPES[code] || null
+    Object.assign(this, data || {})
+  }
+}
+
 export default class Api {
   constructor (settings) {
+    this.Error = ApiError
+
     this.taskRetries = {}
     this.errorHandlers = []
     this.config(settings)
@@ -57,6 +68,10 @@ export default class Api {
     this.TASK_URL = settings.TASK_URL
     this.TASK_REQUEST_MAX_RETRIES = settings.TASK_REQUEST_MAX_RETRIES
     this.TASK_REQUEST_WAIT_TIMEOUT = settings.TASK_REQUEST_WAIT_TIMEOUT
+    this.STATS_REQUEST_MAX_RETRIES = (settings.STATS_REQUEST_MAX_RETRIES ||
+                                      settings.TASK_REQUEST_MAX_RETRIES)
+    this.STATS_REQUEST_WAIT_TIMEOUT = (settings.STATS_REQUEST_WAIT_TIMEOUT ||
+                                       settings.TASK_REQUEST_WAIT_TIMEOUT)
   }
 
   request (method, url, {qs = null, data = null, taskWaitTimeout = null,
@@ -120,10 +135,12 @@ export default class Api {
       }
 
       if (response.status === 202) {
-        const data = humps.camelizeKeys(data)
-        taskWaitTimeout = !isNoU(data.waitTimeout) ? data.waitTimeout : taskWaitTimeout
-        taskMaxRetries = !isNoU(data.maxRetries) ? data.maxRetries : taskMaxRetries
-        return this.getTask(data.taskId, taskWaitTimeout, taskMaxRetries)
+        return response.json().then(data => {
+          data = humps.camelizeKeys(data)
+          taskWaitTimeout = data.waitTimeout != null ? data.waitTimeout : taskWaitTimeout
+          taskMaxRetries = data.maxRetries != null ? data.maxRetries : taskMaxRetries
+          return this.getTask(data.taskId, taskWaitTimeout, taskMaxRetries)
+        })
       }
 
       if (response.status >= 200 && response.status < 300) {
@@ -152,14 +169,14 @@ export default class Api {
 
   error (code, message, data = {}) {
     console.log(`API error ${code}: ${message}`, data)
-    data.codeType = data.codeType || CODE_TYPES[code] || null
     Object.assign(data, {code, message})
+    const error = new this.Error(code, message, data)
 
     let reject = true
     this.errorHandlers.forEach((callback) => {
       if (callback(data) && reject) reject = false
     })
-    if (reject) return Promise.reject(data)
+    if (reject) return Promise.reject(error)
     // We should reject anyway, because otherwise
     // it would be interpreted as fulfilled
     return Promise.reject(null)
@@ -179,8 +196,8 @@ export default class Api {
   }
 
   getTask (taskId, waitTimeout, maxRetries) {
-    waitTimeout = !isNoU(waitTimeout) ? waitTimeout : this.TASK_REQUEST_WAIT_TIMEOUT
-    maxRetries = !isNoU(maxRetries) ? maxRetries : this.TASK_REQUEST_MAX_RETRIES
+    waitTimeout = waitTimeout != null ? waitTimeout : this.TASK_REQUEST_WAIT_TIMEOUT
+    maxRetries = maxRetries != null ? maxRetries : this.TASK_REQUEST_MAX_RETRIES
 
     if (this.taskRetries[taskId] === 0) {
       delete this.taskRetries[taskId]
@@ -191,7 +208,44 @@ export default class Api {
     this.taskRetries[taskId] -= 1
 
     return timeoutPromise(waitTimeout).then(() => {
-      return this.get(this.TASK_URL + taskId, {waitTimeout: waitTimeout})
+      return this.request('get', this.TASK_URL + taskId, {waitTimeout: waitTimeout})
     })
+  }
+
+  getAsyncStatsForObjects (objects, statsMap, statsRequest, callback, idAttr = 'id') {
+    let ids = objects.map((obj) => idAttr ? obj[idAttr] : obj)
+    _.each(statsMap, (stats, id) => callback(id, stats))
+    ids = _.difference(ids, _.keys(statsMap))
+    return this.getAsyncStats(ids, statsRequest, callback, true)
+  }
+
+  getAsyncStats (ids, statsRequest, callback, firstFetchWait = true) {
+    // callback will be invoked for each stats per id or with ApiError instance
+    // (fail may be only on retries exceeded for now)
+    // TODO: return stats promises
+    if (!ids.length) return
+
+    if (typeof statsRequest === 'string' || statsRequest instanceof String) {
+      const url = statsRequest
+      statsRequest = (ids) => this.get(url, {ids: ids.join(',')})
+    }
+    let retriesLeft = this.STATS_REQUEST_MAX_RETRIES
+
+    const request = () => {
+      return statsRequest(ids).then(statsMap => {
+        _.each(statsMap, (stats, id) => callback(id, stats))
+        ids = _.difference(ids, _.keys(statsMap))
+
+        retriesLeft -= 1
+        if (retriesLeft > 0 && ids.length) {
+          setTimeout(request, this.STATS_REQUEST_WAIT_TIMEOUT)
+        } else {
+          _.each(ids, (id) => callback(id, new this.Error(600, 'Stats timeout')))
+        }
+      })
+    }
+
+    if (firstFetchWait) setTimeout(request, this.STATS_REQUEST_WAIT_TIMEOUT)
+    else request()
   }
 }

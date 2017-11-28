@@ -27,7 +27,7 @@ div
           input(type='checkbox', :class="{noSelect: !allSelected}", :checked="selectedCount > 0 || allSelected", :disabled="!pageItems.length")
         slot
     tbody
-      tr.table-id(v-for="item in pageItems")
+      tr.table-id(v-for="item in pageItems" :key="getItemId(item)")
         td.checkboxElement(v-if="actions.length || enableCheck", @click="selectItem(getItemId(item))")
           input(type="checkbox", :value="getItemId(item)", :checked="allSelected || selectedItemIds.indexOf(getItemId(item)) != -1")
         td(v-for="column in columns_")
@@ -161,7 +161,6 @@ export default {
     showCounters: {
       type: Boolean,
       default: true,
-      // only showing pages if more than one otherwise
     },
     enableCheck: {
       // automatic enabled if actions not empty anyway

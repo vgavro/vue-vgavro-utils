@@ -139,7 +139,7 @@ export default {
               this._promise.then(data => {
                 resolve({results: data})
               }, (err) => {
-                if (!err.canceled) reject()
+                if (!err || !err.canceled) reject()
               })
               this._promise.term = params.data.term
               return this._promise

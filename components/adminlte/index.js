@@ -8,6 +8,7 @@ import DatatableFilter from './DatatableFilter'
 import DatePicker from './DatePicker'
 import IntlTelInput from './IntlTelInput'
 import CountrySelect from './SelectCountry'
+import Loader from './Loader'
 
 export default {
   'icheck': Icheck,
@@ -19,5 +20,6 @@ export default {
   'datatable-filter': DatatableFilter,
   'datepicker': DatePicker,
   'intl-tel-input': IntlTelInput,
-  'select-country': CountrySelect
+  'select-country': CountrySelect,
+  'loader': Loader,
 }
