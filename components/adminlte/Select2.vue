@@ -50,6 +50,10 @@ export default {
     minimumResultsForSearch: Number,
     placeholder: String,
     multiselect: Boolean,
+    width: {
+      type: String,
+      default: '100%',
+    },
 
     options: Object,
   },
@@ -150,6 +154,17 @@ export default {
         minimumInputLength: this.minimumInputLength,
         minimumResultsForSearch: this.minimumResultsForSearch,
         placeholder: this.placeholder,
+
+        /*
+        Fix for bug after resize. See tickets below:
+        https://github.com/almasaeed2010/AdminLTE/issues/661
+        https://github.com/select2/select2/issues/3278
+        */
+        width: this.width,
+
+        ...(this.$el.classList.contains('form-control') &&
+            {containerCssClass: 'form-control'}),
+
         ...this.multiselect && {multiselect: true},
         ...this.options,
       })
@@ -171,12 +186,20 @@ export default {
 }
 </script>
 <style>
-/* override admin-lte default focus style, obviously for previous select2 version */
-/* TODO: improve it with color change on focus, but not so buggy as it for now */
+/* Override admin-lte default focus style, obviously for previous select2 version */
+/* TODO: Improve it with color change on focus, but not so buggy as it for now */
 .select2-dropdown .select2-search__field:focus,
 .select2-search--inline .select2-search__field:focus {
-    outline: 0;
-    border: 0px;
+  outline: 0;
+  border: 0px;
+}
+
+/* Overrides to match .form-control fields, if this class was set */
+.select2 .form-control input.select2-search__field {
+  margin-top: 0;  /* fixes internal input margin-top: 5px; */
+}
+.select2 .form-control ul.select2-selection__rendered {
+  padding: 0;  /* fixes internal input padding-left/padding-right */
 }
 
 /* for searchingBox */
