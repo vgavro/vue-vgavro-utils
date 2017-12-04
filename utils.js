@@ -116,5 +116,25 @@ export function vNodeToElement (vNode) {
   return vm.$el
 }
 
+export function geolocationPromise () {
+  return new Promise((resolve, reject) => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(position => {
+        console.debug('Geolocation resolved', position)
+        resolve({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        })
+      }, () => {
+        console.debug('Geolocation forbidden')
+        reject()
+      })
+    } else {
+      console.debug('Geolocation not supported')
+      reject()
+    }
+  })
+}
+
 export const EMAIL_REGEXP = /\S+@\S+\.\S+/
 export const PHONE_REGEXP = /\+[1-9]{1}[0-9]{3,14}/
