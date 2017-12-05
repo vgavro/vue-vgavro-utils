@@ -13,6 +13,8 @@ export function timeoutPromise (time, value) {
 
   const _cancel = promise.cancel
   promise.cancel = () => {
+    // trick not to invoke function if canceled,
+    // instead of just reject with "cancel" reason
     clearTimeout(timeout)
     _cancel()
   }

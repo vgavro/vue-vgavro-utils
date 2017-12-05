@@ -1,10 +1,22 @@
 <template lang="pug">
-select2(:value="value" @input="val => $emit('input', val)" :data="items")
+select2(
+  :value="value"
+  @input="val => $emit('input', val)"
+  :placeholder="placeholder"
+  :multiple="multiple"
+  :data="items"
+)
   template(slot="item" scope="item")
-    div
+    span
       div.flag-box(v-if="item.iso2")
         div.iti-flag(:class="item.iso2.toLowerCase()")
       | {{ item.name }}
+
+  template(slot="item-selected" scope="item")
+    span
+      div.flag-box(v-if="item.iso2")
+        div.iti-flag(:class="item.iso2.toLowerCase()")
+      | {{ multiple ? item.iso2.toUpperCase() : item.name }}
 </template>
 
 <script>
@@ -12,7 +24,7 @@ import jQuery from 'jquery'
 
 export default {
   // countries - list of iso-2 codes ['UA', 'RU'] or null (all countries if null)
-  props: ['value', 'countries'],
+  props: ['value', 'countries', 'placeholder', 'multiple'],
 
   computed: {
     items () {

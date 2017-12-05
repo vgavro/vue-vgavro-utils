@@ -23,7 +23,7 @@ const searchingBox = jQuery('<span style="color: #999">Searching' +
 
 export default {
   props: {
-    value: String,
+    value: [Array, String],
     data: Array,  // component will be reinitialized on data change
 
     // acts like multiselect, but clears on selection.
@@ -132,9 +132,8 @@ export default {
               }
 
               this._promise = timeoutPromise(this.asyncDelay, () => {
-                // will be invoked even on cancel
-                // if (this._promise.term !== params.data.term) return
                 return this.asyncRequest(params.data.term).then(data => {
+                  // will be invoked even on cancel if was already sent
                   data = this.mapIdTextAttrs(data)
                   this.asyncCache[params.data.term] = data
                   return data
@@ -162,8 +161,8 @@ export default {
         */
         width: this.width,
 
-        ...(this.$el.classList.contains('form-control') &&
-            {containerCssClass: 'form-control'}),
+        // ...(this.$el.classList.contains('form-control') &&
+        //     {containerCssClass: 'form-control'}),
 
         ...this.multiselect && {multiselect: true},
         ...this.options,
@@ -192,6 +191,19 @@ export default {
 .select2-search--inline .select2-search__field:focus {
   outline: 0;
   border: 0px;
+}
+
+.select2-container .select2-selection--multiple {
+  /* Override for admin-lte to match form-control
+     and avoid jumping on select (default 32px) */
+  min-height: 34px;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+  /* Override back admin-lte padding, because input jumps on select choice */
+  padding-top: 0px;
+  padding-bottom: 0px;
+  /* Override select2 margin-top (5px) because it jumps on select */
 }
 
 /* Overrides to match .form-control fields, if this class was set */
