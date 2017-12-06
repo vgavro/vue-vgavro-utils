@@ -60,21 +60,8 @@ export default {
       this.popups.forEach(this.popupClose)
     },
 
-    popupError (message, { source, stack, traceback, fetch } = {}) {
-      let content = `<b>Error:</b><pre>${message}</pre>`
-      content += '<pre>'
-      if (fetch) content += `<b>${fetch.options.method.toUpperCase()}</b> ${fetch.url}\n`
-      if (source) content += `<b>Source:</b> ${source}\n`
-      if (!fetch) content += `<b>UserAgent:</b> ${navigator.userAgent}\n`
-      content += '<b>Time:</b> ' + new Date() + '\n'
-      content += '</pre>'
-      content += '<button onclick="location.reload()">RELOAD</button><br>'
-      if (fetch && fetch.flaskDebugURL) {
-        content += ('<button onclick=\'window.open("' + fetch.flaskDebugURL +
-                    '")\'>FLASK DEBUG</button><br>')
-      }
-      if (traceback) content += `<b>Traceback:</b><pre>${traceback}</pre>`
-      // if (stack) content += `<b>Stack:</b><pre>${stack}</pre>`
+    showError (err) {
+      const content = window._utils.formatError(err)
       this.popupOpen(content, {className: 'popup-error'})
     }
   },

@@ -91,12 +91,9 @@ export function guessLanguage (availableLanguages, acceptLanguages = []) {
   if (languages.length) return languages[0]
 }
 
-export function isNoU (value) {
-  // TODO: remove it, check related code and use == null
-  // (as it works as expected and don't break eqeqeq rule)
-  // DEPRECATED NOTE: You can use == undefined, but it's not obvious and breaks eslint rule "eqeqeq"
-  return (value === null || value === undefined)
-}
+// export function isNoU (value) {
+//   // remove it, check related code and use == null
+// }
 
 export function injectComponentOptionsData (vm, data) {
   // This should be used only in beforeCreate

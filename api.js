@@ -1,7 +1,7 @@
 import humps from 'humps'
 import { timeoutPromise } from './utils'
 
-function encodeURIObject (qs) {
+export function encodeURIObject (qs) {
   return Object.keys(qs)
                .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(qs[k]))
                .join('&')
@@ -14,19 +14,10 @@ function _joinURL (base, path) {
   return base + path
 }
 
-function joinURL (...urls) {
+export function joinURL (...urls) {
   let result = ''
   urls.forEach((url) => result = (result && _joinURL(result, url) || url))
   return result
-}
-
-function getFlaskDebugURL (flaskDebuggerURL, fetchOptions) {
-  const debugPayload = {
-    url: fetchOptions.url,
-    method: fetchOptions.options.method,
-  }
-  if (fetchOptions.options.body) debugPayload.data = fetchOptions.options.body
-  return flaskDebuggerURL + '?' + encodeURIObject(debugPayload)
 }
 
 export const CODE_TYPES = {
@@ -52,34 +43,39 @@ export class ApiError {
 }
 
 export default class Api {
-  constructor (settings) {
-    this.Error = ApiError
-
+  constructor (settings, prefix = '', errorClass = ApiError, errorHandlers = []) {
     this.taskRetries = {}
-    this.errorHandlers = []
-    this.config(settings)
+    this.Error = errorClass
+    this.errorHandlers = errorHandlers
+    this.config(settings, prefix)
   }
 
-  config (settings) {
-    this.DEBUG = settings.DEBUG
-    this.API_URL = settings.API_URL
-    this.API_MODE = settings.API_MODE
-    this.API_CREDENTIALS_MODE = settings.API_CREDENTIALS_MODE
+  config (settings, prefix = '') {
+    // es6 vs lodash or ramda? haha :-(
+    settings = Object.assign({}, ...Object.entries(settings).map(([k, v]) => {
+      if (k.startsWith(prefix)) return {[k.substr(prefix.length)]: v}
+    }))
+
+    this.BASE_URL = settings.BASE_URL
+    this.MODE = settings.MODE
+    this.CREDENTIALS_MODE = settings.CREDENTIALS_MODE
     this.TASK_URL = settings.TASK_URL
-    this.TASK_REQUEST_MAX_RETRIES = settings.TASK_REQUEST_MAX_RETRIES
-    this.TASK_REQUEST_WAIT_TIMEOUT = settings.TASK_REQUEST_WAIT_TIMEOUT
-    this.STATS_REQUEST_MAX_RETRIES = (settings.STATS_REQUEST_MAX_RETRIES ||
-                                      settings.TASK_REQUEST_MAX_RETRIES)
-    this.STATS_REQUEST_WAIT_TIMEOUT = (settings.STATS_REQUEST_WAIT_TIMEOUT ||
-                                       settings.TASK_REQUEST_WAIT_TIMEOUT)
+    this.TASK_MAX_RETRIES = settings.TASK_MAX_RETRIES
+    this.TASK_WAIT_TIMEOUT = settings.TASK_WAIT_TIMEOUT
+    this.STATS_MAX_RETRIES = (settings.STATS_MAX_RETRIES || settings.TASK_MAX_RETRIES)
+    this.STATS_WAIT_TIMEOUT = (settings.STATS_WAIT_TIMEOUT || settings.TASK_WAIT_TIMEOUT)
   }
 
   request (method, url, {qs = null, data = null, taskWaitTimeout = null,
                          taskMaxRetries = null} = {}) {
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = joinURL(this.BASE_URL, url)
+    }
+
     const options = {
       method,
-      mode: this.API_MODE,
-      credentials: this.API_CREDENTIALS_MODE,
+      mode: this.MODE,
+      credentials: this.CREDENTIALS_MODE,
     }
 
     if (qs) {
@@ -97,15 +93,7 @@ export default class Api {
       })
     }
 
-    const fetchErrorOptions = { fetch: { url: joinURL(this.API_URL, url), options: options } }
-    if (this.DEBUG) {
-      Object.assign(fetchErrorOptions.fetch, {
-        flaskDebugURL: getFlaskDebugURL(joinURL(this.API_URL, 'flask_debugger'),
-                                        fetchErrorOptions.fetch)
-      })
-    }
-
-    return window.fetch(joinURL(this.API_URL, url), options).then(response => {
+    return window.fetch(url, options).then(response => {
       if (response.status === 200 &&
           response.headers.get('Content-Type') !== 'application/json') {
         const disposition = response.headers.get('Content-Disposition') || ''
@@ -130,7 +118,6 @@ export default class Api {
             return data
           })
         }
-
         return response.blob()
       }
 
@@ -152,18 +139,18 @@ export default class Api {
       return response.json().then(data => {
         data = humps.camelizeKeys(data)
         if (data.error) {
-          Object.assign(data.error, fetchErrorOptions)
+          Object.assign(data.error, {fetch: {url, options}})
           return this.error(data.error.code, data.error.message, data.error)
         }
-        Object.assign(data, fetchErrorOptions)
+        Object.assign(data, {fetch: {url, options}})
         return this.error(response.status, response.statusText, data)
       }, (decodeError) => {
-        const data = {decodeError, ...fetchErrorOptions}
+        const data = Object.assign(decodeError, {fetch: {url, options}})
         return this.error(response.status, response.statusText, data)
       })
     }, (error) => {
       // network-related problems
-      return this.error(-1, error.message, fetchErrorOptions)
+      return this.error(-1, error.message, {fetch: {url, options}})
     })
   }
 
@@ -171,15 +158,8 @@ export default class Api {
     console.log(`API error ${code}: ${message}`, data)
     Object.assign(data, {code, message})
     const error = new this.Error(code, message, data)
-
-    let reject = true
-    this.errorHandlers.forEach((callback) => {
-      if (callback(data) && reject) reject = false
-    })
-    if (reject) return Promise.reject(error)
-    // We should reject anyway, because otherwise
-    // it would be interpreted as fulfilled
-    return Promise.reject(null)
+    this.errorHandlers.forEach((callback) => callback(error))
+    return Promise.reject(error)
   }
 
   get (url, payload) {
@@ -196,8 +176,8 @@ export default class Api {
   }
 
   getTask (taskId, waitTimeout, maxRetries) {
-    waitTimeout = waitTimeout != null ? waitTimeout : this.TASK_REQUEST_WAIT_TIMEOUT
-    maxRetries = maxRetries != null ? maxRetries : this.TASK_REQUEST_MAX_RETRIES
+    waitTimeout = waitTimeout != null ? waitTimeout : this.TASK_WAIT_TIMEOUT
+    maxRetries = maxRetries != null ? maxRetries : this.TASK_MAX_RETRIES
 
     if (this.taskRetries[taskId] === 0) {
       delete this.taskRetries[taskId]
@@ -229,7 +209,7 @@ export default class Api {
       const url = statsRequest
       statsRequest = (ids) => this.get(url, {ids: ids.join(',')})
     }
-    let retriesLeft = this.STATS_REQUEST_MAX_RETRIES
+    let retriesLeft = this.STATS_MAX_RETRIES
 
     const request = () => {
       return statsRequest(ids).then(statsMap => {
@@ -238,14 +218,14 @@ export default class Api {
 
         retriesLeft -= 1
         if (retriesLeft > 0 && ids.length) {
-          setTimeout(request, this.STATS_REQUEST_WAIT_TIMEOUT)
+          setTimeout(request, this.STATS_WAIT_TIMEOUT)
         } else {
           _.each(ids, (id) => callback(id, new this.Error(600, 'Stats timeout')))
         }
       })
     }
 
-    if (firstFetchWait) setTimeout(request, this.STATS_REQUEST_WAIT_TIMEOUT)
+    if (firstFetchWait) setTimeout(request, this.STATS_WAIT_TIMEOUT)
     else request()
   }
 }
