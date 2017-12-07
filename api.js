@@ -155,7 +155,7 @@ export default class Api {
   }
 
   error (code, message, data = {}) {
-    console.log(`API error ${code}: ${message}`, data)
+    // console.log(`API error ${code}: ${message}`, data)
     Object.assign(data, {code, message})
     const error = new this.Error(code, message, data)
     this.errorHandlers.forEach((callback) => callback(error))
