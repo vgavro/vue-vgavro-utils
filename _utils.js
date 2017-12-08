@@ -42,7 +42,7 @@
 
     return (
       '<div class="' + ERROR_CLS + '">' +
-      '<b>Error:</b><pre>' + message + '</pre>' +
+      '<pre>' + message + '</pre>' +
       '<pre>' +
       (err.source && ('<b>Source:</b> ' + err.source + '\n') || '') +
       (err.fetch && ('<b>' + err.fetch.options.method.toUpperCase() + ':</b> ' +
@@ -55,8 +55,7 @@
       (DEBUG && err.fetch && err.code !== -1 &&
        ('<button onclick=\'window._utils.backendDebugger(' +
         JSON.stringify(err.fetch) +
-        ')\'>BACKEND DEBUG</button><br>') || '') +
-      '<hr/>' +
+        ')\'>BACKEND DEBUG</button><br><br>') || '') +
       (traceback && ('<b>Traceback:</b><pre>' + traceback + '</pre>') || '') +
       (stack && ('<b>Stack:</b><pre>' + stack + '</pre>') || '') +
       '</div>'

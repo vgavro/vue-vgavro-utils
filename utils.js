@@ -109,8 +109,8 @@ export function injectComponentOptionsData (vm, data) {
   }
 }
 
-export function vNodeToElement (vNode) {
-  const vm = new Vue({functional: true, render: () => vNode[0]})
+export function vNodeToElement (vnode) {
+  const vm = new Vue({functional: true, render: () => vnode[0]})
   vm.$mount()
   return vm.$el
 }
