@@ -193,7 +193,7 @@ export default class Api {
   }
 
   getAsyncStatsForObjects (objects, statsMap, statsRequest, callback, idAttr = 'id') {
-    let ids = objects.map((obj) => idAttr ? obj[idAttr] : obj)
+    let ids = objects.map((obj) => idAttr ? String(obj[idAttr]) : String(obj))
     _.each(statsMap, (stats, id) => callback(id, stats))
     ids = _.difference(ids, _.keys(statsMap))
     return this.getAsyncStats(ids, statsRequest, callback, true)
