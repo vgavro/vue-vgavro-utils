@@ -51,7 +51,6 @@
       '<b>Time:</b> ' + new Date() + '\n' +
       '</pre>' +
       '<button onclick="location.reload()">RELOAD</button><br>' +
-      // TODO: do not show this button on production
       (DEBUG && err.fetch && err.code !== -1 &&
        ('<button onclick=\'window._utils.backendDebugger(' +
         JSON.stringify(err.fetch) +
@@ -79,7 +78,7 @@
     if (errorCls) ERROR_CLS = errorCls
     if (debug) DEBUG = debug
     window.onerror = function (message, source, lineno, colno) {
-      // TODO: Add backend call for error logging
+      // TODO: Add backend call for error logging. raven/centry?
       showError({
         message: message,
         source: source + ':' + lineno + ':' + colno

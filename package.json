@@ -6,9 +6,8 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "sync-request": "^4",
-    "humps": "=2.0.1",
-    "lodash": "=4.17.4"
+    "humps": "=>2.0.1",
+    "lodash": "=>4.17.4"
   },
   "repository": {
     "type": "git",
