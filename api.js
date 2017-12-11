@@ -1,10 +1,12 @@
 import humps from 'humps'
 import { timeoutPromise } from './utils'
+const _ = window.lodash
 
 export function encodeURIObject (qs) {
-  return Object.keys(qs)
-               .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(qs[k]))
-               .join('&')
+  return Object
+    .keys(qs)
+    .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(qs[k]))
+    .join('&')
 }
 
 function _joinURL (base, path) {
@@ -16,7 +18,7 @@ function _joinURL (base, path) {
 
 export function joinURL (...urls) {
   let result = ''
-  urls.forEach((url) => result = (result && _joinURL(result, url) || url))
+  urls.forEach((url) => result = (result ? _joinURL(result, url) : url))
   return result
 }
 
@@ -30,11 +32,12 @@ export const CODE_TYPES = {
   '500': 'INTERNAL SERVER ERROR',
   '502': 'BAD GATEWAY',
   '504': 'GATEWAY TIMEOUT',
-  '600': 'TASK TIMEOUT',  // on exceeded retries of checking async task
+  '600': 'TASK TIMEOUT', // on exceeded retries of checking async task
 }
 
-export class ApiError {
+export class ApiError extends Error {
   constructor (code, message, data) {
+    super(message)
     this.code = code
     this.message = message
     this.codeType = CODE_TYPES[code] || null
@@ -79,7 +82,7 @@ export default class Api {
     }
 
     if (qs) {
-      qs = JSON.parse(JSON.stringify(qs))  // clone before decamelize
+      qs = JSON.parse(JSON.stringify(qs)) // clone before decamelize
       humps.decamelizeKeys(qs)
       url = url + '?' + encodeURIObject(qs)
     }

@@ -125,12 +125,12 @@ export function geolocationPromise () {
           lng: position.coords.longitude,
         })
       }, () => {
-        console.debug('Geolocation forbidden')
-        reject()
+        console.debug('Geolocation rejected')
+        reject(new Error('Rejected'))
       })
     } else {
       console.debug('Geolocation not supported')
-      reject()
+      reject(new Error('Not supported'))
     }
   })
 }

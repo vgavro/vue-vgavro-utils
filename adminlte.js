@@ -10,9 +10,10 @@ export function bindBootstrapModalFixes () {
     const zIndex = 1040 + (10 * jQuery('.modal:visible').length)
     jQuery(this).css('z-index', zIndex)
     setTimeout(() => {
-      jQuery('.modal-backdrop').not('.modal-stack')
-                               .css('z-index', zIndex - 1)
-                               .addClass('modal-stack')
+      jQuery('.modal-backdrop')
+        .not('.modal-stack')
+        .css('z-index', zIndex - 1)
+        .addClass('modal-stack')
     }, 0)
   })
 

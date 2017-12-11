@@ -1,7 +1,7 @@
 // helper functions for CDN configuration
 // ----------------
 const path = require('path')
-const deps = {}
+let deps = null
 
 function npmVersion (module) {
   if (!deps) deps = require(process.cwd() + '/package-lock.json').dependencies
