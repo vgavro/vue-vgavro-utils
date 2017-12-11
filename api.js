@@ -48,6 +48,7 @@ export class ApiError extends Error {
 export default class Api {
   constructor (settings, prefix = '', errorClass = ApiError, errorHandlers = []) {
     this.taskRetries = {}
+    this.cache = {}
     this.Error = errorClass
     this.errorHandlers = errorHandlers
     this.config(settings, prefix)
@@ -165,8 +166,17 @@ export default class Api {
     return Promise.reject(error)
   }
 
-  get (url, payload) {
-    return this.request('get', url, {qs: payload})
+  get (url, payload, cache = false) {
+    if (cache) {
+      cache = url + JSON.stringify(payload)
+      if (this.cache[cache] !== undefined) {
+        return Promise.resolve(this.cache[cache])
+      }
+    }
+    return this.request('get', url, {qs: payload}).then(data => {
+      if (cache) this.cache[cache] = data
+      return data
+    })
   }
   post (url, payload) {
     return this.request('post', url, {data: payload})
