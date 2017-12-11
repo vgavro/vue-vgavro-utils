@@ -1,6 +1,6 @@
 import humps from 'humps'
 import { timeoutPromise } from './utils'
-const _ = window.lodash
+import _ from 'lodash'
 
 export function encodeURIObject (qs) {
   return Object
