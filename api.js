@@ -80,6 +80,7 @@ export default class Api {
       method,
       mode: this.MODE,
       credentials: this.CREDENTIALS_MODE,
+      headers: new window.Headers()
     }
 
     if (qs) {
@@ -92,10 +93,10 @@ export default class Api {
       data = JSON.parse(JSON.stringify(data)) // clone before decamelize
       humps.decamelizeKeys(data)
       options.body = JSON.stringify(data)
-      options.headers = new window.Headers({
-        'Content-Type': 'application/json; charset=UTF-8',
-      })
+      options.headers.append('Content-Type', 'application/json; charset=UTF-8')
     }
+
+    if (this.accessToken) options.headers.append('Authorization', this.accessToken)
 
     return window.fetch(url, options).then(response => {
       if (response.status === 200 &&

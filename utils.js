@@ -56,6 +56,11 @@ export function range (start, stop, step = 1) {
                     (x, i) => start + i * step)
 }
 
+export function parseFlaskSession (data) {
+  // Parse encoded flask session cookie with signature.
+  return JSON.parse(window.atob(data.substr(0, data.indexOf('.'))))
+}
+
 export function cssTimeToMilliseconds (timeString) {
   // based on https://gist.github.com/jakebellacera/9261266
   const num = parseFloat(timeString, 10)
