@@ -101,7 +101,9 @@ export function guessLanguage (availableLanguages, acceptLanguages = []) {
 // }
 
 export function injectComponentOptionsData (vm, data) {
+  // TODO: DEPRECATED: instead of this Vue.util.defineReactive should be used
   // This should be used only in beforeCreate
+  console.log('injectComponentOptionsData deprecated')
   const optionsData = vm.$options.data
   vm.$options.data = function () {
     const result = (
@@ -120,6 +122,14 @@ export function vNodeToElement (vnode) {
   return vm.$el
 }
 
+export function removeProp (vm, name) {
+  // Helper to remove prop from created component
+  delete vm.$options.props[name] // supress warning "use $prop instead"
+  delete vm.$props[name] // do not invoke error message on update
+  vm.$options._propKeys = // remove this parameter not to update from parent
+    vm.$options._propKeys.filter(k => k !== name)
+}
+
 export function geolocationPromise () {
   return new Promise((resolve, reject) => {
     if (navigator.geolocation) {
@@ -131,11 +141,11 @@ export function geolocationPromise () {
         })
       }, () => {
         console.debug('Geolocation rejected')
-        reject(new Error('Rejected'))
+        reject(new Error('Geolocation rejected'))
       })
     } else {
       console.debug('Geolocation not supported')
-      reject(new Error('Not supported'))
+      reject(new Error('Geolocation not supported'))
     }
   })
 }

@@ -28,7 +28,7 @@ function createRequest (vm, name, request) {
 
 export default {
   beforeCreate () {
-    Object.entries(this.$options.requests).forEach(([key, value]) => {
+    Object.entries(this.$options.requests || {}).forEach(([key, value]) => {
       this[key] = createRequest(this, key, value)
     })
   },
