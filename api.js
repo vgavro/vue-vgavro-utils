@@ -84,14 +84,14 @@ export default class Api {
     }
 
     if (qs) {
-      qs = JSON.parse(JSON.stringify(qs)) // clone before decamelize
-      humps.decamelizeKeys(qs)
+      // qs = JSON.parse(JSON.stringify(qs)) // clone before decamelize
+      qs = humps.decamelizeKeys(qs)
       url = url + '?' + encodeURIObject(qs)
     }
 
     if (data) {
-      data = JSON.parse(JSON.stringify(data)) // clone before decamelize
-      humps.decamelizeKeys(data)
+      // data = JSON.parse(JSON.stringify(data)) // clone before decamelize
+      data = humps.decamelizeKeys(data)
       options.body = JSON.stringify(data)
       options.headers['Content-Type'] = 'application/json; charset=UTF-8'
     }
