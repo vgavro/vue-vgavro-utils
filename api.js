@@ -85,13 +85,13 @@ export default class Api {
 
     if (qs) {
       // qs = JSON.parse(JSON.stringify(qs)) // clone before decamelize
-      qs = humps.decamelizeKeys(qs)
+      qs = this.decamelizeKeys(qs)
       url = url + '?' + encodeURIObject(qs)
     }
 
     if (data) {
       // data = JSON.parse(JSON.stringify(data)) // clone before decamelize
-      data = humps.decamelizeKeys(data)
+      data = this.decamelizeKeys(data)
       options.body = JSON.stringify(data)
       options.headers['Content-Type'] = 'application/json; charset=UTF-8'
     }
@@ -128,7 +128,7 @@ export default class Api {
 
       if (response.status === 202) {
         return response.json().then(data => {
-          data = humps.camelizeKeys(data)
+          data = this.camelizeKeys(data)
           taskWaitTimeout = data.waitTimeout != null ? data.waitTimeout : taskWaitTimeout
           taskMaxRetries = data.maxRetries != null ? data.maxRetries : taskMaxRetries
           return this.getTask(data.taskId, taskWaitTimeout, taskMaxRetries)
@@ -137,12 +137,12 @@ export default class Api {
 
       if (response.status >= 200 && response.status < 300) {
         return response.json().then(data => {
-          return humps.camelizeKeys(data)
+          return this.camelizeKeys(data)
         })
       }
 
       return response.json().then(data => {
-        data = humps.camelizeKeys(data)
+        data = this.camelizeKeys(data)
         if (data.error) {
           Object.assign(data.error, {fetch: {url, options}})
           return this.error(data.error.code, data.error.message, data.error)
@@ -241,5 +241,17 @@ export default class Api {
 
     if (firstFetchWait) setTimeout(request, this.STATS_WAIT_TIMEOUT)
     else request()
+  }
+
+  camelizeKeys (data) {
+    return humps.camelizeKeys(data, function (key, convert) {
+      return /^[A-Z0-9_]+$/.test(key) ? key : convert(key)
+    })
+  }
+
+  decamelizeKeys (data) {
+    return humps.decamelizeKeys(data, function (key, convert, options) {
+      return /^[A-Z0-9_]+$/.test(key) ? key : convert(key, options)
+    })
   }
 }
