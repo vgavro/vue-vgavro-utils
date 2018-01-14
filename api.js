@@ -46,24 +46,24 @@ export class ApiError extends Error {
 }
 
 export default class Api {
-  constructor (settings, prefix = '', errorClass = ApiError, errorHandlers = []) {
+  constructor (config, prefix = '', errorClass = ApiError, errorHandlers = []) {
     this.taskRetries = {}
     this.cache = {}
     this.Error = errorClass
     this.errorHandlers = errorHandlers
-    this.config(settings, prefix)
+    this.configure(config, prefix)
   }
 
-  config (settings, prefix = '') {
+  configure (settings, prefix = '') {
     // es6 vs lodash or ramda? haha :-(
     settings = Object.assign({}, ...Object.entries(settings).map(([k, v]) => {
       if (k.startsWith(prefix)) return {[k.substr(prefix.length)]: v}
     }))
 
+    // TODO: create and subclass Configurable to allow inheritance and later configuration
     this.BASE_URL = settings.BASE_URL
     this.MODE = settings.MODE
     this.CREDENTIALS_MODE = settings.CREDENTIALS_MODE
-    this.TASK_URL = settings.TASK_URL
     this.TASK_MAX_RETRIES = settings.TASK_MAX_RETRIES
     this.TASK_WAIT_TIMEOUT = settings.TASK_WAIT_TIMEOUT
     this.STATS_MAX_RETRIES = (settings.STATS_MAX_RETRIES || settings.TASK_MAX_RETRIES)
@@ -131,7 +131,7 @@ export default class Api {
           data = this.camelizeKeys(data)
           taskWaitTimeout = data.waitTimeout != null ? data.waitTimeout : taskWaitTimeout
           taskMaxRetries = data.maxRetries != null ? data.maxRetries : taskMaxRetries
-          return this.getTask(data.taskId, taskWaitTimeout, taskMaxRetries)
+          return this.getTask(data.taskUrl, taskWaitTimeout, taskMaxRetries)
         })
       }
 
@@ -189,20 +189,20 @@ export default class Api {
     return this.request('delete', url, {data: payload})
   }
 
-  getTask (taskId, waitTimeout, maxRetries) {
+  getTask (taskUrl, waitTimeout, maxRetries) {
     waitTimeout = waitTimeout != null ? waitTimeout : this.TASK_WAIT_TIMEOUT
     maxRetries = maxRetries != null ? maxRetries : this.TASK_MAX_RETRIES
 
-    if (this.taskRetries[taskId] === 0) {
-      delete this.taskRetries[taskId]
-      return this.error(600, `Max task request retries exceeded for ${taskId}`)
-    } else if (!this.taskRetries[taskId]) {
-      this.taskRetries[taskId] = maxRetries
+    if (this.taskRetries[taskUrl] === 0) {
+      delete this.taskRetries[taskUrl]
+      return this.error(600, `Max task request retries exceeded for ${taskUrl}`)
+    } else if (!this.taskRetries[taskUrl]) {
+      this.taskRetries[taskUrl] = maxRetries
     }
-    this.taskRetries[taskId] -= 1
+    this.taskRetries[taskUrl] -= 1
 
     return timeoutPromise(waitTimeout).then(() => {
-      return this.request('get', this.TASK_URL + taskId, {waitTimeout: waitTimeout})
+      return this.request('get', taskUrl, {waitTimeout: waitTimeout})
     })
   }
 
