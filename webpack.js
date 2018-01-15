@@ -19,9 +19,9 @@ function npmVersion (module) {
 function resolveUrl (url, env) {
   if (url.startsWith('http://') || url.startsWith('https://')) return url
   if (env !== 'production') return path.join('/node_modules/', url)
-  const module = url.split('/', 1)
-  const filename = url.substr(module.length)
-  return 'https://unpkg.com/' + module + '@' + npmVersion(module) + filename
+  const module = url.split('/', 1)[0]
+  const filename = url.substr(module.length + 1)
+  return path.join('https://unpkg.com/' + module + '@' + npmVersion(module) + '/', filename)
 }
 
 module.exports = {
