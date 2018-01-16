@@ -55,8 +55,8 @@
        ('<button onclick=\'window._utils.backendDebugger(' +
         JSON.stringify(err.fetch) +
         ')\'>BACKEND DEBUG</button><br><br>') || '') +
-      (traceback && ('<b>Traceback:</b><pre>' + traceback + '</pre>') || '') +
-      (stack && ('<b>Stack:</b><pre>' + stack + '</pre>') || '') +
+      (DEBUG && traceback && ('<b>Traceback:</b><pre>' + traceback + '</pre>') || '') +
+      (DEBUG && stack && ('<b>Stack:</b><pre>' + stack + '</pre>') || '') +
       '</div>'
     )
   }
