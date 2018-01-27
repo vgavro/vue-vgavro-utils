@@ -5,6 +5,7 @@ import _ from 'lodash'
 export function encodeURIObject (qs) {
   return Object
     .keys(qs)
+    .filter(k => qs[k] != null)
     .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(qs[k]))
     .join('&')
 }
