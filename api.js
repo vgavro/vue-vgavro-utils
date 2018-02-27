@@ -124,7 +124,16 @@ export default class Api {
             return data
           })
         }
-        return response.blob()
+        return response.blob().then(data => {
+          if (data.type !== 'application/json') return data
+          const reader = new FileReader()
+          return new Promise((resolve, reject) => {
+            reader.onload = function () {
+              resolve(JSON.parse(this.result))
+            }
+            reader.readAsText(data)
+          })
+        })
       }
 
       if (response.status === 202) {
