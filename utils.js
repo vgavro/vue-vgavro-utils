@@ -134,7 +134,7 @@ export function removeProp (vm, name, options = true) {
     vm.$options._propKeys.filter(k => k !== name)
 }
 
-export function geolocationPromise () {
+export function geolocationPromise (defaultLatLng = null) {
   return new Promise((resolve, reject) => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(position => {
@@ -145,11 +145,13 @@ export function geolocationPromise () {
         })
       }, () => {
         console.debug('Geolocation rejected')
-        reject(new Error('Geolocation rejected'))
+        if (defaultLatLng) resolve(defaultLatLng)
+        else reject(new Error('Geolocation rejected'))
       })
     } else {
       console.debug('Geolocation not supported')
-      reject(new Error('Geolocation not supported'))
+      if (defaultLatLng) resolve(defaultLatLng)
+      else reject(new Error('Geolocation rejected'))
     }
   })
 }
