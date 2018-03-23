@@ -56,6 +56,11 @@ export function range (start, stop, step = 1) {
                     (x, i) => start + i * step)
 }
 
+export function capitalize (value) {
+  // https://stackoverflow.com/a/38530325/450103
+  return value.replace(/\b\w/g, l => l.toUpperCase())
+}
+
 export function parseFlaskSession (data) {
   // Parse encoded flask session cookie with signature.
   return JSON.parse(window.atob(data.substr(0, data.indexOf('.'))))
