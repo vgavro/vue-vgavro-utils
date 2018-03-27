@@ -29,7 +29,6 @@ function registerDialog (CKEDITOR) {
       var target = ev.data.getTarget();
       var unicode = target.getAttribute('alt');
       if (unicode) {
-        console.log(unicode)
         editor.insertText(unicode);
         dialog.hide();
       }
@@ -235,24 +234,7 @@ export default function registerPlugin (CKEDITOR) {
             return
 
           return text.replace(emojione.regUnicode, function(match) {
-            const html = emojione.unicodeToImage(match)
-            return html
-            const wrapper = editor.widgets.wrapElement(html, 'emojione')
-            return wrapper.getOuterHtml()
-
-            // Creating widget code.
-            var widgetWrapper = null,
-              innerElement = new CKEDITOR.htmlParser.element('span', {
-                'class': 'cke_token'
-              });
-
-            // Adds token identifier as innertext.
-            innerElement.add( new CKEDITOR.htmlParser.text( match ) );
-            widgetWrapper = editor.widgets.wrapElement(innerElement, 'token');
-
-            // Return outerhtml of widget wrapper so it will be placed
-            // as replacement.
-            return widgetWrapper.getOuterHtml();
+            return emojione.unicodeToImage(match)
           })
         }
       })

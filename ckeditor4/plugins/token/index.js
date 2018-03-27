@@ -1,11 +1,11 @@
 // Based on https://github.com/rael9/token-replacement-ckeditor-plugin
 
 function escapeRegExp (string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 function registerDialog (CKEDITOR) {
-  CKEDITOR.dialog.add('token', function( editor ) {
+  CKEDITOR.dialog.add('token', function (editor) {
     const lang = editor.lang.token
     const tokens = editor.config.availableTokens || CKEDITOR.config.availableTokens
     return {
@@ -20,8 +20,8 @@ function registerDialog (CKEDITOR) {
           elements: [
             // Dialog window UI elements.
             {
-              id: "name",
-              type: "select",
+              id: 'name',
+              type: 'select',
               style: 'width: 100%;',
               label: lang.name,
               'default': '',
@@ -42,24 +42,24 @@ function registerDialog (CKEDITOR) {
 }
 
 export default function registerPlugin (CKEDITOR) {
-  CKEDITOR.addCss( '.cke_token{background-color:#ff0}' );
+  CKEDITOR.addCss('.cke_token{background-color:#ff0}')
 
-  registerDialog(CKEDITOR);
+  registerDialog(CKEDITOR)
 
   CKEDITOR.plugins.add('token', {
     requires: 'widget,dialog',
     init: function (editor) {
-      var lang = editor.lang.token;
-      var tokenStart = '${';
-      var tokenEnd = '}';
-      if (typeof editor.config.tokenStart != 'undefined') {
-          tokenStart = editor.config.tokenStart;
+      var lang = editor.lang.token
+      var tokenStart = CKEDITOR.config.token.tokenStart
+      var tokenEnd = CKEDITOR.config.token.tokenEnd
+      if (typeof editor.config.tokenStart !== 'undefined') {
+        tokenStart = editor.config.tokenStart
       }
-      if (typeof editor.config.tokenEnd != 'undefined') {
-          tokenEnd = editor.config.tokenEnd;
+      if (typeof editor.config.tokenEnd !== 'undefined') {
+        tokenEnd = editor.config.tokenEnd
       }
-      var tokenStartNum = tokenStart.length;
-      var tokenEndNum = 0 - tokenEnd.length;
+      var tokenStartNum = tokenStart.length
+      var tokenEndNum = 0 - tokenEnd.length
 
       // Put ur init code here.
       editor.widgets.add('token', {
@@ -70,19 +70,19 @@ export default function registerPlugin (CKEDITOR) {
         // add dialog.
         template: '<span class="cke_token"></span>',
 
-        downcast: function() {
-          return new CKEDITOR.htmlParser.text( tokenStart + this.data.name + tokenEnd );
+        downcast: function () {
+          return new CKEDITOR.htmlParser.text(tokenStart + this.data.name + tokenEnd)
         },
 
-        init: function() {
+        init: function () {
           // Note that token markup characters are stripped for the name.
-          this.setData('name', this.element.getText().slice( tokenStartNum, tokenEndNum));
+          this.setData('name', this.element.getText().slice(tokenStartNum, tokenEndNum))
         },
 
-        data: function() {
-          this.element.setText( tokenStart + this.data.name + tokenEnd );
+        data: function () {
+          this.element.setText(tokenStart + this.data.name + tokenEnd)
         }
-      });
+      })
 
       editor.ui.addButton && editor.ui.addButton('Token', {
         label: lang.toolbar,
@@ -90,31 +90,30 @@ export default function registerPlugin (CKEDITOR) {
         toolbar: 'insert',
         icon: require('./icons/token.png'),
         iconHiDpi: require('./icons/hidpi/token.png'),
-      });
+      })
     },
 
     afterInit: function (editor) {
       let tokenStart = CKEDITOR.config.token.tokenStart
-      if (typeof editor.config.tokenStart != 'undefined') {
+      if (typeof editor.config.tokenStart !== 'undefined') {
         tokenStart = editor.config.tokenStart
       }
       let tokenEnd = CKEDITOR.config.token.tokenEnd
-      if (typeof editor.config.tokenEnd != 'undefined') {
+      if (typeof editor.config.tokenEnd !== 'undefined') {
         tokenEnd = editor.config.tokenEnd
       }
       var tokenStartRegex = escapeRegExp(tokenStart)
       var tokenEndRegex = escapeRegExp(tokenEnd)
       var tokenReplaceRegex = new RegExp(tokenStartRegex + '([^' +
-        tokenStartRegex + tokenEndRegex +'])+' + tokenEndRegex, 'g');
+        tokenStartRegex + tokenEndRegex + '])+' + tokenEndRegex, 'g')
 
       editor.dataProcessor.dataFilter.addRules({
-        text: function( text, node ) {
-          var dtd = node.parent && CKEDITOR.dtd[ node.parent.name ];
+        text: function (text, node) {
+          var dtd = node.parent && CKEDITOR.dtd[node.parent.name]
 
           // Skip the case when token is in elements like <title> or <textarea>
           // but upcast token in custom elements (no DTD).
-          if ( dtd && !dtd.span )
-            return
+          if (dtd && !dtd.span) return
 
           let matchOnly = null
           if (editor.config.availableTokens) {
@@ -123,36 +122,35 @@ export default function registerPlugin (CKEDITOR) {
             })
           }
 
-          return text.replace(tokenReplaceRegex, function( match ) {
+          return text.replace(tokenReplaceRegex, function (match) {
             if (matchOnly && matchOnly.indexOf(match) === -1) {
               return match
             }
             // Creating widget code.
-            var widgetWrapper = null,
-              innerElement = new CKEDITOR.htmlParser.element( 'span', {
-                'class': 'cke_token'
-              })
+            const innerElement = new CKEDITOR.htmlParser.element('span', {
+              'class': 'cke_token'
+            })
 
             // Adds token identifier as innertext.
             innerElement.add(new CKEDITOR.htmlParser.text(match))
-            widgetWrapper = editor.widgets.wrapElement(innerElement, 'token')
+            const widgetWrapper = editor.widgets.wrapElement(innerElement, 'token')
 
             // Return outerhtml of widget wrapper so it will be placed
             // as replacement.
-            return widgetWrapper.getOuterHtml();
+            return widgetWrapper.getOuterHtml()
           })
         }
       })
     },
-  });
+  })
 
-  CKEDITOR.plugins.setLang( 'token', 'en', {
+  CKEDITOR.plugins.setLang('token', 'en', {
     title: 'Token Insertion',
     toolbar: 'Token',
     name: 'Token to Insert',
     pathName: 'token'
   })
-  CKEDITOR.plugins.setLang( 'token', 'ru', {
+  CKEDITOR.plugins.setLang('token', 'ru', {
     title: 'Вставить токен',
     toolbar: 'Токен',
     name: 'Токен',
