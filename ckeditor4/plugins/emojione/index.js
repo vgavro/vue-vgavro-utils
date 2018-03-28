@@ -22,97 +22,99 @@ img.emojione {
 `
 
 function registerDialog (CKEDITOR) {
-  CKEDITOR.dialog.add('emojioneDialog', function(editor) {
-    var columns = 10;
-    var dialog;
-    var onClick = function( ev ) {
-      var target = ev.data.getTarget();
-      var unicode = target.getAttribute('alt');
+  CKEDITOR.dialog.add('emojioneDialog', function (editor) {
+    var columns = 10
+    var dialog = null
+
+    var onClick = function (ev) {
+      var target = ev.data.getTarget()
+      if (target.getName() === 'a') target = target.getFirst()
+      // for cases when onclick called from onKeydown
+      var unicode = target.getAttribute('alt')
       if (unicode) {
-        editor.insertText(unicode);
-        dialog.hide();
+        editor.insertText(unicode)
+        dialog.hide()
       }
-      ev.data.preventDefault();
+      ev.data.preventDefault()
     }
 
-    var onKeydown = CKEDITOR.tools.addFunction( function( ev, element ) {
-      ev = new CKEDITOR.dom.event( ev );
-      element = new CKEDITOR.dom.element( element );
-      var relative, nodeToMove;
+    var onKeydown = CKEDITOR.tools.addFunction(function (ev, element) {
+      ev = new CKEDITOR.dom.event(ev)
+      element = new CKEDITOR.dom.element(element)
+      var relative = null
+      var nodeToMove = null
+      var keystroke = ev.getKeystroke()
+      var rtl = (editor.lang.dir === 'rtl')
 
-      var keystroke = ev.getKeystroke(),
-        rtl = editor.lang.dir == 'rtl';
-      switch ( keystroke ) {
-        // UP-ARROW
-        case 38:
-          // relative is TR
-          if ( ( relative = element.getParent().getParent().getPrevious() ) ) {
-            nodeToMove = relative.getChild( [ element.getParent().getIndex(), 0 ] );
-            nodeToMove.focus();
-          }
-          ev.preventDefault();
-          break;
-        // DOWN-ARROW
-        case 40:
-          // relative is TR
-          if ( ( relative = element.getParent().getParent().getNext() ) ) {
-            nodeToMove = relative.getChild( [ element.getParent().getIndex(), 0 ] );
-            if ( nodeToMove )
-              nodeToMove.focus();
-          }
-          ev.preventDefault();
-          break;
-        // ENTER
-        // SPACE
-        case 32:
-          onClick( { data: ev } );
-          ev.preventDefault();
-          break;
+      switch (keystroke) {
+      // UP-ARROW
+      case 38:
+        // relative is TR
+        if ((relative = element.getParent().getParent().getPrevious())) {
+          nodeToMove = relative.getChild([element.getParent().getIndex(), 0])
+          nodeToMove.focus()
+        }
+        ev.preventDefault()
+        break
+      // DOWN-ARROW
+      case 40:
+        // relative is TR
+        if ((relative = element.getParent().getParent().getNext())) {
+          nodeToMove = relative.getChild([element.getParent().getIndex(), 0])
+          if (nodeToMove) nodeToMove.focus()
+        }
+        ev.preventDefault()
+        break
+      // ENTER
+      // SPACE
+      // case 13:
+      case 32:
+        onClick({ data: ev })
+        ev.preventDefault()
+        break
 
-        // RIGHT-ARROW
-        case rtl ? 37 : 39:
-          // relative is TD
-          if ( ( relative = element.getParent().getNext() ) ) {
-            nodeToMove = relative.getChild( 0 );
-            nodeToMove.focus();
-            ev.preventDefault(true);
-          }
-          // relative is TR
-          else if ( ( relative = element.getParent().getParent().getNext() ) ) {
-            nodeToMove = relative.getChild( [ 0, 0 ] );
-            if ( nodeToMove )
-              nodeToMove.focus();
-            ev.preventDefault(true);
-          }
-          break;
+      // RIGHT-ARROW
+      case rtl ? 37 : 39:
+        // relative is TD
+        if ((relative = element.getParent().getNext())) {
+          nodeToMove = relative.getChild(0)
+          nodeToMove.focus()
+          ev.preventDefault(true)
+        } else if ((relative = element.getParent().getParent().getNext())) {
+        // relative is TR
+          nodeToMove = relative.getChild([0, 0])
+          if (nodeToMove) nodeToMove.focus()
+          ev.preventDefault(true)
+        }
+        break
 
-        // LEFT-ARROW
-        case rtl ? 39 : 37:
-          // relative is TD
-          if ( ( relative = element.getParent().getPrevious() ) ) {
-            nodeToMove = relative.getChild( 0 );
-            nodeToMove.focus();
-            ev.preventDefault(true);
-          }
-          // relative is TR
-          else if ( ( relative = element.getParent().getParent().getPrevious() ) ) {
-            nodeToMove = relative.getLast().getChild( 0 );
-            nodeToMove.focus();
-            ev.preventDefault(true);
-          }
-          break;
-        default:
-          // Do not stop not handled events.
-          return;
+      // LEFT-ARROW
+      case rtl ? 39 : 37:
+        // relative is TD
+        if ((relative = element.getParent().getPrevious())) {
+          nodeToMove = relative.getChild(0)
+          nodeToMove.focus()
+          ev.preventDefault(true)
+        } else if ((relative = element.getParent().getParent().getPrevious())) {
+        // relative is TR
+          nodeToMove = relative.getLast().getChild(0)
+          nodeToMove.focus()
+          ev.preventDefault(true)
+        }
+        break
+      default:
+        // Do not stop not handled events.
+        return null
       }
     })
 
     var buildHtml = function (group) {
-      var labelId = CKEDITOR.tools.getNextId() + '_smiley_emtions_label';
+      var labelId = CKEDITOR.tools.getNextId() + '_smiley_emtions_label'
       var html = [
         '<div style="max-height:300px;overflow-y:scroll;">' +
         '<span id="' + labelId + '" class="cke_voice_label">Test</span>',
-        '<table role="listbox" aria-labelledby="' + labelId + '" style="width:100%;height:100%;border-collapse:separate;" cellspacing="2" cellpadding="2"',
+        '<table role="listbox" aria-labelledby="' + labelId + '"',
+        'style="width:100%;height:100%;border-collapse:separate;" cellspacing="2" cellpadding="2"',
         CKEDITOR.env.ie && CKEDITOR.env.quirks ? ' style="position:absolute;"' : '',
         '><tbody>'
       ]
@@ -128,12 +130,14 @@ function registerDialog (CKEDITOR) {
         var obj = list[code]
         html.push(
           '<td class="cke_centered" style="vertical-align: middle;" role="presentation">' +
-          '<a style="font-size: 25px;" data-unicode="' + obj.uc_output + '" data-shortcode="' + code + '" href="javascript:void(0)" role="option"', ' aria-posinset="' + ( i + 1 ) + '"', ' aria-setsize=""', ' aria-labelledby=""',
-          ' class="cke_hand" tabindex="-1" onkeydown="CKEDITOR.tools.callFunction( ', onKeydown, ', event, this );">',
-          emojione.shortnameToImage(code) +
-          '</a>', '</td>'
+          '<a style="font-size: 25px;" data-unicode="' + obj.uc_output +
+          '" data-shortcode="' + code + '" href="javascript:void(0)" role="option"',
+          ' aria-posinset="' + (i + 1) + '"', ' aria-setsize=""', ' aria-labelledby=""',
+          ' class="cke_hand" tabindex="-1"' +
+          ' onkeydown="CKEDITOR.tools.callFunction( ', onKeydown, ', event, this );">',
+          emojione.shortnameToImage(code) + '</a></td>'
         )
-        if (i % columns == columns - 1) html.push( '</tr>' )
+        if (i % columns === columns - 1) html.push('</tr>')
         i++
       }
 
@@ -151,12 +155,12 @@ function registerDialog (CKEDITOR) {
         type: 'html',
         id: 'emojiSelector',
         html: buildHtml(group),
-        onLoad: function( event ) {
-          dialog = event.sender;
+        onLoad: function (event) {
+          dialog = event.sender
         },
         focus: function () {
-          var self = this;
-          setTimeout( function() {
+          var self = this
+          setTimeout(function () {
             var firstSmile = self.getElement().getElementsByTag('a').getItem(0)
             firstSmile.focus()
           }, 0)
@@ -204,8 +208,8 @@ function registerDialog (CKEDITOR) {
         }
       ],
       // onShow: function () {},
-    };
-  });
+    }
+  })
 }
 
 export default function registerPlugin (CKEDITOR) {
@@ -222,18 +226,28 @@ export default function registerPlugin (CKEDITOR) {
         toolbar: 'insert',
         icon: require('./icons/emojione.png'),
       })
+
+      // editor.widgets.add('emojione', {
+      //   upcast: function (el) {
+      //     console.log(el)
+      //     return el.name === 'image'
+      //   },
+      //   init: function () {
+      //     console.log('init')
+      //   },
+      //   template: '<img alt="unicode" />'
+      // })
     },
 
     afterInit: function (editor) {
       editor.dataProcessor.dataFilter.addRules({
-        text: function(text, node) {
+        text: function (text, node) {
           var dtd = node.parent && CKEDITOR.dtd[node.parent.name]
           // Skip the case when token is in elements like <title> or <textarea>
           // but upcast token in custom elements (no DTD).
-          if (dtd && !dtd.span)
-            return
+          if (dtd && !dtd.span) return
 
-          return text.replace(emojione.regUnicode, function(match) {
+          return text.replace(emojione.regUnicode, function (match) {
             return emojione.unicodeToImage(match)
           })
         }
