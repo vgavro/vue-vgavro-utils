@@ -65,7 +65,8 @@
     // Display only first error, and never show on loaded app
     if (window.app && window.app.loaded && window.app.showError) {
       window.app.showError(err)
-    } else {
+    } else if (DEBUG) {
+      // NOTE: This error may be caused not by our scripts, so skip it in production
       var body = document.body || document.getElementsByTagName('body')[0]
       body.innerHTML = formatError(err)
       body.className = ERROR_CLS
