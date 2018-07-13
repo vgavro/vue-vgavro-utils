@@ -172,5 +172,12 @@ export function isElementInViewport (el) {
   )
 }
 
+export function domFromString (html) {
+  // TODO: works only with root element
+  const div = document.createElement('div')
+  div.innerHTML = html
+  return div.firstChild
+}
+
 export const EMAIL_REGEXP = /\S+@\S+\.\S+/
 export const PHONE_REGEXP = /\+[1-9]{1}[0-9]{3,14}/
