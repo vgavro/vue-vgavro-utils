@@ -1,5 +1,20 @@
 import { intersection } from 'lodash'
+// TODO: replace with http://2ality.com/2015/01/es6-set-operations.html
 import Vue from 'vue'
+
+// lodash replacements
+export function pickBy (obj, fn) {
+  return Object.entries(obj).filter(fn)
+    .reduce((obj, [k, v]) => Object.assign(obj, {[k]: v}), {})
+}
+
+export function pick (obj, ...keys) {
+  return pickBy(obj, ([k, v]) => keys.includes(k))
+}
+
+export function omit (obj, ...keys) {
+  return pickBy(obj, ([k, v]) => !keys.includes(k))
+}
 
 export function timeoutPromise (time, value) {
   let timeout = null
