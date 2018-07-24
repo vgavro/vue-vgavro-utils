@@ -1,29 +1,47 @@
 import Vue from 'vue'
 
+import { timeoutPromise } from '../utils.js'
+
 function createRequest (vm, name, request) {
-  const request_ = function () {
+  const rv = function () {
+    rv.delayPromise.cancel()
     const result = request.apply(vm, arguments)
     if (!result) return
-    request_.loading += 1
-    request_.error = null
-    return result
-      .then(data => {
-        request_.loading -= 1
-        request_.data = data
-        request_.error = null
+    rv.loading += 1
+    rv.error = null
+    const promise = result.then(
+      (data) => {
+        rv.loading -= 1
+        rv.data = data
+        rv.error = null
         return data
-      })
-      .catch(error => {
-        request_.loading -= 1
-        request_.data = null
-        request_.error = error || true // empty reject? shame on you!
+      },
+      (error) => {
+        rv.loading -= 1
+        rv.data = null
+        rv.error = error || true // empty reject? shame on you!
         return Promise.reject(error)
-      })
+      }
+    )
+    rv.promise = promise
+    return promise
   }
-  Vue.util.defineReactive(request_, 'loading', 0)
-  Vue.util.defineReactive(request_, 'data', null)
-  Vue.util.defineReactive(request_, 'error', null)
-  return request_
+  Vue.util.defineReactive(rv, 'loading', 0)
+  Vue.util.defineReactive(rv, 'data', null)
+  Vue.util.defineReactive(rv, 'error', null)
+
+  rv.delayPromise = timeoutPromise(0)
+  rv.delay = function (timeout) {
+    rv.delayPromise.cancel()
+    rv.delayPromise = timeoutPromise(timeout)
+    return function () {
+      const arguments_ = arguments
+      return rv.delayPromise.then(function () {
+        return rv.apply(null, arguments_)
+      })
+    }
+  }
+  return rv
 }
 
 export default {

@@ -15,9 +15,12 @@
   }
 
   function formatError (err) {
+    // if (err.code === -1 && err.codeType === 'REQUEST ERROR') {
+    //   return '<b>Connection error.</b> Please check your internet connection.'
+    // }
     var message = ''
     if (err.code) message += '<b>' + String(err.code) + ':</b> '
-    if (err.code_type) message += '<b>' + err.code_type + ':</b> '
+    if (err.codeType) message += '<b>' + err.codeType + ':</b> '
     if (err.name) message += '<b>' + err.name + ':</b> '
     if (err.message) message += escapeTags(err.repr || err.message)
     if (!message) message = escapeTags(String(err))
@@ -44,19 +47,24 @@
       '<div class="' + ERROR_CLS + '">' +
       '<pre>' + message + '</pre>' +
       '<pre>' +
-      (err.source && ('<b>Source:</b> ' + err.source + '\n') || '') +
-      (err.fetch && ('<b>' + err.fetch.options.method.toUpperCase() + ':</b> ' +
-                              err.fetch.url + '\n') || '') +
+      (err.source ? ('<b>Source:</b> ' + err.source + '\n') : '') +
+      (err.fetch ? ('<b>' + err.fetch.options.method.toUpperCase() + ':</b> ' +
+                    err.fetch.url + '\n') : '') +
       '<b>UserAgent:</b> ' + navigator.userAgent + '\n' +
       '<b>Time:</b> ' + new Date() + '\n' +
       '</pre>' +
       '<button onclick="location.reload()">RELOAD</button><br>' +
-      (DEBUG && err.fetch && err.code !== -1 &&
-       ('<button onclick=\'window._utils.backendDebugger(' +
-        JSON.stringify(err.fetch) +
-        ')\'>BACKEND DEBUG</button><br><br>') || '') +
-      (DEBUG && traceback && ('<b>Traceback:</b><pre>' + traceback + '</pre>') || '') +
-      (DEBUG && stack && ('<b>Stack:</b><pre>' + stack + '</pre>') || '') +
+      ((DEBUG && err.fetch && err.code !== -1)
+        ? ('<button onclick=\'window._utils.backendDebugger(' +
+           JSON.stringify(err.fetch) +
+           ')\'>BACKEND DEBUG</button><br><br>') : ''
+      ) +
+      ((DEBUG && traceback)
+        ? ('<b>Traceback:</b><pre>' + traceback + '</pre>') : ''
+      ) +
+      ((DEBUG && stack)
+        ? ('<b>Stack:</b><pre>' + stack + '</pre>') : ''
+      ) +
       '</div>'
     )
   }
@@ -71,7 +79,7 @@
       body.innerHTML = formatError(err)
       body.className = ERROR_CLS
       document.documentElement.className = ERROR_CLS
-      window.onerror = null  // show only first error if app is not loaded
+      window.onerror = null // show only first error if app is not loaded
     }
   }
 

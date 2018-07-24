@@ -126,7 +126,7 @@ export default class Api {
         }
         return response.blob().then(data => {
           if (data.type !== 'application/json') return data
-          const reader = new FileReader()
+          const reader = new window.FileReader()
           return new Promise((resolve, reject) => {
             reader.onload = function () {
               resolve(JSON.parse(this.result))
