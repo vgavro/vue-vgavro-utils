@@ -15,3 +15,12 @@ export function removeProp (vm, name, options = true) {
   vm.$options._propKeys = // remove this parameter not to update from parent
     vm.$options._propKeys.filter(k => k !== name)
 }
+
+export function watchAndEmit (vm, watchNames, getEventData,
+                              eventName = 'input', immediate = true) {
+  function update () {
+    vm.$emit(eventName, getEventData())
+  }
+  watchNames.forEach(name => vm.$watch(name, {deep: true, handler: update}))
+  if (immediate) update()
+}
