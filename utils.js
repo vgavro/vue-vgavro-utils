@@ -16,6 +16,10 @@ export function omit (obj, ...keys) {
   return pickBy(obj, ([k, v]) => !keys.includes(k))
 }
 
+export function deepCopy (obj) {
+  return JSON.parse(JSON.stringify(obj))
+}
+
 export function timeoutPromise (time, value) {
   let timeout = null
 
