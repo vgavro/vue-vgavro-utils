@@ -83,7 +83,7 @@
     }
   }
 
-  function setErrorHandler (errorCls, debug) {
+  function init (errorCls, debug) {
     if (errorCls) ERROR_CLS = errorCls
     if (debug) DEBUG = debug
     window.onerror = function (message, source, lineno, colno) {
@@ -122,10 +122,10 @@
     })
   }
 
-  window._utils = {
+  window._errorHandler = {
+    init: init,
     formatError: formatError,
     showError: showError,
-    setErrorHandler: setErrorHandler,
     backendDebugger: backendDebugger,
   }
 })()

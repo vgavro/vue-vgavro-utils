@@ -1,6 +1,6 @@
 import Vue from 'vue'
 
-import { timeoutPromise } from '../utils.js'
+import { timeoutPromise } from '../promise.js'
 
 function createRequest (vm, name, request) {
   const rv = function () {

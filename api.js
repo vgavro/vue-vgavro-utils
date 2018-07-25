@@ -1,5 +1,5 @@
 import humps from 'humps'
-import { timeoutPromise } from './utils'
+import { timeoutPromise } from './promise'
 import _ from 'lodash'
 
 export function encodeURIObject (qs) {
