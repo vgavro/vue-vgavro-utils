@@ -153,12 +153,12 @@ export default class Api {
 
       return response.json().then(data => {
         data = this.camelizeKeys(data)
-        if (data.error) {
-          Object.assign(data.error, {fetch: {url, options}})
-          return this.error(data.error.code, data.error.message, data.error)
-        }
         Object.assign(data, {fetch: {url, options}})
-        return this.error(response.status, response.statusText, data)
+        if (data.status === 'ERROR') {
+          return this.error(data.code, data.message, data)
+        } else {
+          return this.error(response.status, response.statusText, data)
+        }
       }, (decodeError) => {
         const data = Object.assign(decodeError, {fetch: {url, options}})
         return this.error(response.status, response.statusText, data)
