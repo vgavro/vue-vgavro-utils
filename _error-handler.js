@@ -94,7 +94,7 @@
       })
     }
     window.addEventListener('unhandledrejection', function (ev) {
-      if (ev.reason) showError(ev.reason)
+      if (ev.reason && ev.reason !== 'canceled') showError(ev.reason)
     })
   }
 

@@ -1,6 +1,6 @@
 import humps from 'humps'
-import { timeoutPromise } from './promise'
-import _ from 'lodash'
+import { timeoutPromise, createCachable } from './promise'
+import { LRUMap } from './lru'
 
 export function encodeURIObject (qs) {
   return Object
@@ -49,7 +49,9 @@ export class ApiError extends Error {
 export default class Api {
   constructor (config, prefix = '', errorClass = ApiError, errorHandlers = []) {
     this.taskRetries = {}
-    this.cache = {}
+
+    this.cache = new LRUMap(256)
+    this.cachable = createCachable(this.cache)
     this.Error = errorClass
     this.errorHandlers = errorHandlers
     this.configure(config, prefix)
@@ -177,17 +179,14 @@ export default class Api {
     return Promise.reject(error)
   }
 
-  get (url, payload, cache = false) {
+  get (url, qs, { cache = false, cacheTimeout = null } = {}) {
     if (cache) {
-      cache = url + JSON.stringify(payload)
-      if (this.cache[cache] !== undefined) {
-        return Promise.resolve(this.cache[cache])
-      }
+      return this.cachable(
+        () => this.request('get', url, {qs}),
+        url + JSON.stringify(qs), cache, cacheTimeout
+      )
     }
-    return this.request('get', url, {qs: payload}).then(data => {
-      if (cache) this.cache[cache] = data
-      return data
-    })
+    return this.request('get', url, {qs})
   }
   post (url, payload) {
     return this.request('post', url, {data: payload})
@@ -218,8 +217,8 @@ export default class Api {
 
   getAsyncStatsForObjects (objects, statsMap, statsRequest, callback, idAttr = 'id') {
     let ids = objects.map((obj) => idAttr ? String(obj[idAttr]) : String(obj))
-    _.each(statsMap, (stats, id) => callback(id, stats))
-    ids = _.difference(ids, _.keys(statsMap))
+    Object.entries(statsMap).forEach(([id, stats]) => callback(id, stats))
+    ids = ids.filter(id => statsMap[id] === undefined)
     return this.getAsyncStats(ids, statsRequest, callback, true)
   }
 
@@ -237,14 +236,14 @@ export default class Api {
 
     const request = () => {
       return statsRequest(ids).then(statsMap => {
-        _.each(statsMap, (stats, id) => callback(id, stats))
-        ids = _.difference(ids, _.keys(statsMap))
+        Object.entries(statsMap).forEach(([id, stats]) => callback(id, stats))
+        ids = ids.filter(id => statsMap[id] === undefined)
 
         retriesLeft -= 1
         if (retriesLeft > 0 && ids.length) {
           setTimeout(request, this.STATS_WAIT_TIMEOUT)
         } else {
-          _.each(ids, (id) => callback(id, new this.Error(600, 'Stats timeout')))
+          ids.forEach(id => callback(id, new this.Error(600, 'Stats timeout')))
         }
       })
     }

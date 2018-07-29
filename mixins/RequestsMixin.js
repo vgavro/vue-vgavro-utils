@@ -1,47 +1,70 @@
 import Vue from 'vue'
 
-import { timeoutPromise } from '../promise.js'
+import { createSingular, createDelayed } from '../promise.js'
 
 function createRequest (vm, name, request) {
-  const rv = function () {
-    rv.delayPromise.cancel()
+  // exposes vm[name] function:
+  // (...arguments) send request
+  // data: last request result (reactive)
+  // error: last request error (if any) (reactive)
+  // loading: integer with current active requests (reactive)
+  // args: last request call arguments
+  // promise: last request promise
+  // request({delayed: false, singular: false})(...argumets)
+  //   send request with options:
+  //     delayed: milliseconds
+  //       new delay or direct call cancels previously delayed
+  //     singular: Boolean
+  //       call new request or return waiting with same
+  //       arguments, and cancel others (skip cancel with 'no-cancel')
+
+  const req = function () {
+    delayed.promise.cancel()
+    req.args = Array.from(arguments)
     const result = request.apply(vm, arguments)
-    if (!result) return
-    rv.loading += 1
-    rv.error = null
-    const promise = result.then(
+    if (!result) return Promise.resolve(result)
+    req.loading += 1
+    req.error = null
+    req.promise = result.then(
       (data) => {
-        rv.loading -= 1
-        rv.data = data
-        rv.error = null
+        req.loading -= 1
+        req.data = data
+        req.error = null
         return data
       },
       (error) => {
-        rv.loading -= 1
-        rv.data = null
-        rv.error = error || true // empty reject? shame on you!
+        req.loading -= 1
+        req.data = null
+        req.error = error || true // empty reject? shame on you!
         return Promise.reject(error)
       }
     )
-    rv.promise = promise
-    return promise
+    return req.promise
   }
-  Vue.util.defineReactive(rv, 'loading', 0)
-  Vue.util.defineReactive(rv, 'data', null)
-  Vue.util.defineReactive(rv, 'error', null)
+  Vue.util.defineReactive(req, 'loading', 0)
+  Vue.util.defineReactive(req, 'data', null)
+  Vue.util.defineReactive(req, 'error', null)
 
-  rv.delayPromise = timeoutPromise(0)
-  rv.delay = function (timeout) {
-    rv.delayPromise.cancel()
-    rv.delayPromise = timeoutPromise(timeout)
+  const delayed = createDelayed()
+  const singular = createSingular()
+
+  req.request = function (options = {singular: false, delayed: false}) {
     return function () {
-      const arguments_ = arguments
-      return rv.delayPromise.then(function () {
-        return rv.apply(null, arguments_)
-      })
+      let createPromise
+      if (options.singular) {
+        createPromise = () => singular(
+          () => req.apply(null, arguments),
+          JSON.stringify(Array.from(arguments)),
+          options.singular !== 'no-cancel'
+        )
+      } else createPromise = () => req.apply(null, arguments)
+      if (options.delayed) {
+        return delayed(createPromise, options.delayed)
+      } else return createPromise()
     }
   }
-  return rv
+
+  return req
 }
 
 export default {

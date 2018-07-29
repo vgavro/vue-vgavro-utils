@@ -1,7 +1,3 @@
-import { intersection } from 'lodash'
-// TODO: replace with http://2ality.com/2015/01/es6-set-operations.html
-import Vue from 'vue'
-
 // lodash replacements
 export function pickBy (obj, fn) {
   return Object.entries(obj).filter(fn)
@@ -14,6 +10,11 @@ export function pick (obj, ...keys) {
 
 export function omit (obj, ...keys) {
   return pickBy(obj, ([k, v]) => !keys.includes(k))
+}
+
+export function isArrayEqual (arr1, arr2) {
+  // Scalar strict compare
+  return arr1.length === arr2.length && arr1.every((v, i) => v === arr2[i])
 }
 
 export function deepCopy (obj) {
@@ -56,7 +57,3 @@ export function capitalize (value) {
   // https://stackoverflow.com/a/38530325/450103
   return value.replace(/\b\w/g, l => l.toUpperCase())
 }
-
-// TODO: wtf it's doing here?
-export const EMAIL_REGEXP = /\S+@\S+\.\S+/
-export const PHONE_REGEXP = /\+[1-9]{1}[0-9]{3,14}/
