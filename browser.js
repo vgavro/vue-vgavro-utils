@@ -1,3 +1,5 @@
+import { intersection } from './utils'
+
 export function geolocationPromise (defaultLatLng = null) {
   return new Promise((resolve, reject) => {
     if (navigator.geolocation) {

@@ -57,3 +57,7 @@ export function capitalize (value) {
   // https://stackoverflow.com/a/38530325/450103
   return value.replace(/\b\w/g, l => l.toUpperCase())
 }
+
+export function intersection (arr1, arr2) {
+  return arr1.filter((x) => arr2.includes(x))
+}

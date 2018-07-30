@@ -1,3 +1,5 @@
+import Vue from 'vue'
+
 export function vNodeToElement (vnode) {
   const vm = new Vue({functional: true, render: () => vnode[0]})
   vm.$mount()
@@ -17,9 +19,11 @@ export function removeProp (vm, name, options = true) {
 }
 
 export function watchAndEmit (vm, watchNames, getEventData,
-                              eventName = 'input', immediate = true) {
+  eventName = 'input', immediate = true) {
   function update () {
-    vm.$emit(eventName, getEventData())
+    const rv = getEventData()
+    if (typeof rv.then === 'function') rv.then((data) => vm.$emit(eventName, data))
+    else vm.$emit(eventName, rv)
   }
   watchNames.forEach(name => vm.$watch(name, {deep: true, handler: update}))
   if (immediate) update()
