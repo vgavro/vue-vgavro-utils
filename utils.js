@@ -61,3 +61,11 @@ export function capitalize (value) {
 export function intersection (arr1, arr2) {
   return arr1.filter((x) => arr2.includes(x))
 }
+
+export function resolveObjectPath (obj, path) {
+  // https://stackoverflow.com/a/8817473/450103
+  for (let i = 0, path = path.split('.'), len = path.length; i < len; i++) {
+    obj = obj[path[i]]
+  }
+  return obj
+}
