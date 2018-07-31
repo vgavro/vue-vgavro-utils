@@ -22,8 +22,9 @@ export function watchAndEmit (vm, watchNames, getEventData,
   eventName = 'input', immediate = true) {
   function update () {
     const rv = getEventData()
-    if (typeof rv.then === 'function') rv.then((data) => vm.$emit(eventName, data))
-    else vm.$emit(eventName, rv)
+    if (rv && typeof rv.then === 'function') {
+      rv.then((data) => vm.$emit(eventName, data))
+    } else vm.$emit(eventName, rv)
   }
   watchNames.forEach(name => vm.$watch(name, {deep: true, handler: update}))
   if (immediate) update()

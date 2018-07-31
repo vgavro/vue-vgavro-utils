@@ -55,7 +55,7 @@
       '</pre>' +
       '<button onclick="location.reload()">RELOAD</button><br>' +
       ((DEBUG && err.fetch && err.code !== -1)
-        ? ('<button onclick=\'window._utils.backendDebugger(' +
+        ? ('<button onclick=\'window._errorHandler.backendDebugger(' +
            JSON.stringify(err.fetch) +
            ')\'>BACKEND DEBUG</button><br><br>') : ''
       ) +
