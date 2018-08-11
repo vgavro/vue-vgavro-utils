@@ -13,7 +13,8 @@ npm run lint
 Правила ниже приведены из-за того, что в модули eslint-а все не запихнешь, ну или
 запихнуть не дошли руки.
 
-## pug
+### Pug
+
 Indent 2 пробела.
 Комментарии элементов в pug - только на parent элементе!
 ```pug
@@ -44,7 +45,7 @@ mytag(
 )
 ```
 
-## Sass
+### Sass
 Indent 2 пробела.
 Всегда оборачиваем верстку в такую же иерархию, как и в html-е, что-бы легче было понимать что где
 находится, а не возвращаться к html-у постоянно.
@@ -124,7 +125,7 @@ props и events. В общем когда есть необходимость с
 В основном используется для оверрайда стандартных стилей element-ui, например если оверрайд
 необходим на всем проекте, а не разово или в конкретных компонентах.
 
-`./src/styles/common.scss` - этот файл инклудится на всем проекте во все scss, объявленные в компонентах.
+`./src/styles/common.scss` - этот файл инклудится на всем проекте во все sass, объявленные в компонентах.
 Используется для объявления общих миксинов, переменных и т.п.
 Например цвета всегда должны использоваться по названиям переменных и модификациям
 lighten/darken/saturate/desaturate/adjust-hue/rgba/tintshade.
@@ -158,3 +159,29 @@ export default {
 `./src/components/common/` - Общие компоненты, которые автоматически инклудятся во все
 компоненты приложения. При добавлении необходимо так же добавить экспорт компонента
 в `./src/components/common/index.js`, из которого он включается в приложение.
+
+## Responsive layout
+
+В *html* для скрытия элементов используем классы из element-ui:
+http://element.eleme.io/#/en-US/component/layout#utility-classes-for-hiding-elements
+https://github.com/ElementUI/theme-chalk/blob/master/lib/display.css
+
+В *sass* используются переменные из src/styles/common.scss
+(соответсвуют названиям размеров в классах из display.css)
+```scss
+$--sm: 768px !default;
+$--md: 992px !default;
+$--lg: 1200px !default;
+$--xl: 1920px !default;
+```
+Пример использования:
+```scss
+.el-main {
+  padding-right: 30px;
+  padding-left: 20px;
+  @media screen and (max-width: $--sm - 1) {
+    padding-right: 20px;
+    padding-left: 10px;
+  }
+}
+```
