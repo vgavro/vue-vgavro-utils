@@ -7,7 +7,10 @@ const elementBreakpoints = {
 }
 
 function getScreenSize (breakpoints) {
-  const rv = {width: document.body.clientWidth}
+  const rv = {
+    width: document.body.clientWidth,
+    height: document.body.clientHeight,
+  }
   let bWidth = null
   let bp = null
 
