@@ -26,7 +26,7 @@ export function defer () {
   return deferred
 }
 
-export function makeCancelable (promise, reason = 'canceled') {
+export function makeCancelable (promise, reason = 'cancel') {
   // Poorly based on https://stackoverflow.com/a/37492399/450103
   if (promise.cancel) return promise
   const wrapper = defer()
