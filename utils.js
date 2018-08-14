@@ -12,6 +12,14 @@ export function omit (obj, ...keys) {
   return pickBy(obj, ([k, v]) => !keys.includes(k))
 }
 
+export function pickDifference (obj1, obj2) {
+  return pickBy(obj1, ([k, v]) => v !== obj2[k])
+}
+
+export function omitNull (obj) {
+  return pickBy(obj, ([k, v]) => v !== null)
+}
+
 export function isArrayEqual (arr1, arr2) {
   // Scalar strict compare
   return arr1.length === arr2.length && arr1.every((v, i) => v === arr2[i])
