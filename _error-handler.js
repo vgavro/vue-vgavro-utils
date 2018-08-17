@@ -4,6 +4,14 @@
 (function () {
   var ERROR_CLS = 'app-error'
   var DEBUG = false
+  var LOAD_ERROR_DOMAINS = []
+
+  function loadErrorDomainMatch (err) {
+    if (!err.fetch) return
+    var a = document.createElement('a')
+    a.href = err.fetch.url
+    return LOAD_ERROR_DOMAINS.indexOf(a.hostname) > -1
+  }
 
   function escapeTags (str) {
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -15,9 +23,15 @@
   }
 
   function formatError (err) {
-    // if (err.code === -1 && err.codeType === 'REQUEST ERROR') {
-    //   return '<b>Connection error.</b> Please check your internet connection.'
-    // }
+    if (err.code === -1 && err.codeType === 'REQUEST ERROR') {
+      return (
+        '<div class="' + ERROR_CLS + '">' +
+        '<b>Connection error.</b> Please check your internet connection.' +
+        '<button onclick="location.reload()">RELOAD</button>' +
+        '</div>'
+      )
+    }
+
     var message = ''
     if (err.code) message += '<b>' + String(err.code) + ':</b> '
     if (err.codeType) message += '<b>' + err.codeType + ':</b> '
@@ -73,7 +87,7 @@
     // Display only first error, and never show on loaded app
     if (window.app && window.app.loaded && window.app.showError) {
       window.app.showError(err)
-    } else if (DEBUG) {
+    } else if (DEBUG || loadErrorDomainMatch(err)) {
       // NOTE: This error may be caused not by our scripts, so skip it in production
       var body = document.body || document.getElementsByTagName('body')[0]
       body.innerHTML = formatError(err)
@@ -83,9 +97,10 @@
     }
   }
 
-  function init (errorCls, debug) {
+  function init (errorCls, debug, loadErrorDomains) {
     if (errorCls) ERROR_CLS = errorCls
     if (debug) DEBUG = debug
+    if (loadErrorDomains) LOAD_ERROR_DOMAINS = loadErrorDomains
     window.onerror = function (message, source, lineno, colno) {
       // TODO: Add backend call for error logging. raven/centry?
       showError({
