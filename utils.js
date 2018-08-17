@@ -16,8 +16,8 @@ export function pickDifference (obj1, obj2) {
   return pickBy(obj1, ([k, v]) => v !== obj2[k])
 }
 
-export function omitNull (obj) {
-  return pickBy(obj, ([k, v]) => v !== null)
+export function omitValue (obj, ...values) {
+  return pickBy(obj, ([k, v]) => !values.includes(v))
 }
 
 export function isArrayEqual (arr1, arr2) {
