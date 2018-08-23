@@ -185,3 +185,13 @@ $--xl: 1920px !default;
   }
 }
 ```
+
+В *Vue* мы используем плагин `./plugins/ScreenSize.js`, который добавляет в компонент
+`$screenSize` и `$contentSize` с шириной, высотой и названием классов по аналогии
+с названиями css-классов из element-ui. $screenSize - размер viewport, $contentSize -
+размер контента (с вычетом скрытого или раскрытого меню).
+Пример использования:
+```vue
+el-table
+  el-table-column(v-if="$contentSize.lgAndUp")
+```
