@@ -17,7 +17,8 @@ npm run lint
 
 Indent 2 пробела.
 Комментарии элементов в pug - только на parent элементе!
-```pug
+```vue
+<template lang="pug">
 // правильно
 // mytag
      my-subtag
@@ -25,6 +26,7 @@ Indent 2 пробела.
 // неправильно
 // mytaag
 //   mysubtag
+</template>
 ```
 
 Перенос аттрибутов элемента на новую строку должен закрываться скобкой в новом отступе. Хотя pug
@@ -32,7 +34,8 @@ Indent 2 пробела.
 скобку прийдется комментировать отдельно.
 Возможно pug исправит в будущем, но так как эта бага до сих пор открыта -
 надежд немного https://github.com/pugjs/pug/issues/2770
-```pug
+```vue
+<template lang="pug">
 // правильно
 mytag(
   attr=1
@@ -43,6 +46,7 @@ mytag(
   attr=1
   attr=2
 )
+</template>
 ```
 
 ### Sass
@@ -163,8 +167,8 @@ export default {
 ## Responsive layout
 
 В *html* для скрытия элементов используем классы из element-ui:
-http://element.eleme.io/#/en-US/component/layout#utility-classes-for-hiding-elements
-https://github.com/ElementUI/theme-chalk/blob/master/lib/display.css
+- http://element.eleme.io/#/en-US/component/layout#utility-classes-for-hiding-elements
+- https://github.com/ElementUI/theme-chalk/blob/master/lib/display.css
 
 В *sass* используются переменные из src/styles/common.scss
 (соответсвуют названиям размеров в классах из display.css)
@@ -189,10 +193,12 @@ $--xl: 1920px !default;
 
 В *Vue* мы используем плагин `./plugins/ScreenSize.js`, который добавляет в компонент
 `$screenSize` и `$contentSize` с шириной, высотой и названием классов по аналогии
-с названиями css-классов из element-ui. $screenSize - размер viewport, $contentSize -
+с названиями css-классов из element-ui. `$screenSize` - размер viewport, `$contentSize` -
 размер контента (с вычетом скрытого или раскрытого меню).
 Пример использования:
 ```vue
+<template lang="pug">
 el-table
   el-table-column(v-if="$contentSize.lgAndUp")
+</template>
 ```
