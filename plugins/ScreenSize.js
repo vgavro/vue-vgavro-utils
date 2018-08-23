@@ -69,6 +69,8 @@ export function install (Vue, {
       store.screenSize = getScreenSize(breakpoints)
     }, debounce)
   })
+  // Obviously we get first height before load ended
+  setTimeout(() => (store.screenSize = getScreenSize(breakpoints)), 0)
 
   Vue.prototype._$contentSizeChanged = (delta) => {
     contentSizeDelta = delta
