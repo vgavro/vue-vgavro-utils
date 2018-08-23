@@ -169,6 +169,7 @@ https://github.com/ElementUI/theme-chalk/blob/master/lib/display.css
 В *sass* используются переменные из src/styles/common.scss
 (соответсвуют названиям размеров в классах из display.css)
 ```scss
+// xs: 0px
 $--sm: 768px !default;
 $--md: 992px !default;
 $--lg: 1200px !default;
