@@ -71,9 +71,8 @@ export default class Api {
     }
     _set('MODE', 'cors')
     _set('CREDENTIALS_MODE', 'include')
-    _set('MODE', 'cors')
-    _set('TASK_MAX_RETRIES', null)
-    _set('TASK_WAIT_TIMEOUT', null)
+    _set('TASK_MAX_RETRIES', 10)
+    _set('TASK_WAIT_TIMEOUT', 1500)
     _set('HUMPS', true)
   }
 
@@ -144,7 +143,7 @@ export default class Api {
 
       if (response.status === 202) {
         return response.json().then(data => {
-          if (humps || (humps == null && this.HUMPS)) {
+          if (humps != null ? humps : this.HUMPS) {
             data = this.camelizeKeys(data)
           }
           taskWaitTimeout = data.waitTimeout != null ? data.waitTimeout : taskWaitTimeout
@@ -155,7 +154,7 @@ export default class Api {
 
       if (response.status >= 200 && response.status < 300) {
         return response.json().then(data => {
-          if (humps || (humps == null && this.HUMPS)) {
+          if (humps != null ? humps : this.HUMPS) {
             return this.camelizeKeys(data)
           }
           return data
@@ -163,7 +162,7 @@ export default class Api {
       }
 
       return response.json().then(data => {
-        if (humps || (humps == null && this.HUMPS)) {
+        if (humps != null ? humps : this.HUMPS) {
           data = this.camelizeKeys(data)
         }
         Object.assign(data, {fetch: {url, options}})
