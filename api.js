@@ -62,19 +62,24 @@ export default class Api {
     settings = Object.assign({}, ...Object.entries(settings).map(([k, v]) => {
       if (k.startsWith(prefix)) return {[k.substr(prefix.length)]: v}
     }))
-
     // TODO: create and subclass Configurable to allow inheritance and later configuration
+
     this.BASE_URL = settings.BASE_URL
-    this.MODE = settings.MODE
-    this.CREDENTIALS_MODE = settings.CREDENTIALS_MODE
+
+    const _set = (name, default_) => {
+      this[name] = settings[name] != null ? settings[name] : default_
+    }
+    _set('MODE', 'cors')
+
+
+    this.MODE = _default(settings.MODE, 'cors')
     this.TASK_MAX_RETRIES = settings.TASK_MAX_RETRIES
     this.TASK_WAIT_TIMEOUT = settings.TASK_WAIT_TIMEOUT
-    this.STATS_MAX_RETRIES = (settings.STATS_MAX_RETRIES || settings.TASK_MAX_RETRIES)
-    this.STATS_WAIT_TIMEOUT = (settings.STATS_WAIT_TIMEOUT || settings.TASK_WAIT_TIMEOUT)
+    this.HUMPS = settings.HUMPS != null ? settings.HUMPS : true
   }
 
   request (method, url, {qs = null, data = null, taskWaitTimeout = null,
-                         taskMaxRetries = null} = {}) {
+                         taskMaxRetries = null, humps = null} = {}) {
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = joinURL(this.BASE_URL, url)
     }
