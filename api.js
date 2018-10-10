@@ -70,12 +70,11 @@ export default class Api {
       this[name] = settings[name] != null ? settings[name] : default_
     }
     _set('MODE', 'cors')
-
-
-    this.MODE = _default(settings.MODE, 'cors')
-    this.TASK_MAX_RETRIES = settings.TASK_MAX_RETRIES
-    this.TASK_WAIT_TIMEOUT = settings.TASK_WAIT_TIMEOUT
-    this.HUMPS = settings.HUMPS != null ? settings.HUMPS : true
+    _set('CREDENTIALS_MODE', 'include')
+    _set('MODE', 'cors')
+    _set('TASK_MAX_RETRIES', null)
+    _set('TASK_WAIT_TIMEOUT', null)
+    _set('HUMPS', true)
   }
 
   request (method, url, {qs = null, data = null, taskWaitTimeout = null,
@@ -145,7 +144,9 @@ export default class Api {
 
       if (response.status === 202) {
         return response.json().then(data => {
-          data = this.camelizeKeys(data)
+          if (humps || (humps == null && this.HUMPS)) {
+            data = this.camelizeKeys(data)
+          }
           taskWaitTimeout = data.waitTimeout != null ? data.waitTimeout : taskWaitTimeout
           taskMaxRetries = data.maxRetries != null ? data.maxRetries : taskMaxRetries
           return this.getTask(data.taskUrl, taskWaitTimeout, taskMaxRetries)
@@ -154,12 +155,17 @@ export default class Api {
 
       if (response.status >= 200 && response.status < 300) {
         return response.json().then(data => {
-          return this.camelizeKeys(data)
+          if (humps || (humps == null && this.HUMPS)) {
+            return this.camelizeKeys(data)
+          }
+          return data
         })
       }
 
       return response.json().then(data => {
-        data = this.camelizeKeys(data)
+        if (humps || (humps == null && this.HUMPS)) {
+          data = this.camelizeKeys(data)
+        }
         Object.assign(data, {fetch: {url, options}})
         if (data.status === 'ERROR') {
           return this.error(data.code, data.message, data)
@@ -184,10 +190,10 @@ export default class Api {
     return Promise.reject(error)
   }
 
-  get (url, qs, { cache = false, cacheTimeout = null } = {}) {
+  get (url, qs, { cache = false, cacheTimeout = null, humps = null } = {}) {
     if (cache) {
       return this.cachable(
-        () => this.request('get', url, {qs}),
+        () => this.request('get', url, {qs, humps}),
         url + JSON.stringify(qs), cache, cacheTimeout
       )
     }
@@ -237,7 +243,7 @@ export default class Api {
       const url = statsRequest
       statsRequest = (ids) => this.get(url, {ids: ids.join(',')})
     }
-    let retriesLeft = this.STATS_MAX_RETRIES
+    let retriesLeft = this.TASK_MAX_RETRIES
 
     const request = () => {
       return statsRequest(ids).then(statsMap => {
@@ -246,14 +252,14 @@ export default class Api {
 
         retriesLeft -= 1
         if (retriesLeft > 0 && ids.length) {
-          setTimeout(request, this.STATS_WAIT_TIMEOUT)
+          setTimeout(request, this.TASK_WAIT_TIMEOUT)
         } else {
           ids.forEach(id => callback(id, new this.Error(600, 'Stats timeout')))
         }
       })
     }
 
-    if (firstFetchWait) setTimeout(request, this.STATS_WAIT_TIMEOUT)
+    if (firstFetchWait) setTimeout(request, this.TASK_WAIT_TIMEOUT)
     else request()
   }
 
