@@ -229,14 +229,14 @@ export default class Api {
     })
   }
 
-  getAsyncStatsForObjects (objects, statsMap, statsRequest, callback, idAttr = 'id', qsKey, dataKey) {
+  getAsyncStatsForObjects (objects, statsMap, statsRequest, callback, idAttr = 'id', qsKey = 'ids', dataKey) {
     let ids = objects.map((obj) => idAttr ? String(obj[idAttr]) : String(obj))
     Object.entries(statsMap).forEach(([id, stats]) => callback(id, stats))
     ids = ids.filter(id => statsMap[id] === undefined)
     return this.getAsyncStats(ids, statsRequest, callback, true, qsKey, dataKey)
   }
 
-  getAsyncStats (ids, statsRequest, callback, firstFetchWait = true, qsKey, dataKey) {
+  getAsyncStats (ids, statsRequest, callback, firstFetchWait = true, qsKey = 'ids', dataKey) {
     // callback will be invoked for each stats per id or with ApiError instance
     // (fail may be only on retries exceeded for now)
     // TODO: return stats promises
@@ -244,7 +244,7 @@ export default class Api {
 
     if (typeof statsRequest === 'string' || statsRequest instanceof String) {
       const url = statsRequest
-      statsRequest = (ids) => this.get(url, {[qsKey || 'ids']: ids.join(',')})
+      statsRequest = (ids) => this.get(url, {[qsKey]: ids.join(',')})
     }
     let retriesLeft = this.TASK_MAX_RETRIES
 
