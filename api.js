@@ -91,13 +91,17 @@ export default class Api {
 
     if (qs) {
       // qs = JSON.parse(JSON.stringify(qs)) // clone before decamelize
-      qs = this.decamelizeKeys(qs)
+      if (humps != null ? humps : this.HUMPS) {
+        qs = this.decamelizeKeys(qs)
+      }
       url = url + '?' + encodeURIObject(qs)
     }
 
     if (data) {
       // data = JSON.parse(JSON.stringify(data)) // clone before decamelize
-      data = this.decamelizeKeys(data)
+      if (humps != null ? humps : this.HUMPS) {
+        data = this.decamelizeKeys(data)
+      }
       options.body = JSON.stringify(data)
       options.headers['Content-Type'] = 'application/json; charset=UTF-8'
     }
@@ -225,14 +229,14 @@ export default class Api {
     })
   }
 
-  getAsyncStatsForObjects (objects, statsMap, statsRequest, callback, idAttr = 'id') {
+  getAsyncStatsForObjects (objects, statsMap, statsRequest, callback, idAttr = 'id', qsKey, dataKey) {
     let ids = objects.map((obj) => idAttr ? String(obj[idAttr]) : String(obj))
     Object.entries(statsMap).forEach(([id, stats]) => callback(id, stats))
     ids = ids.filter(id => statsMap[id] === undefined)
-    return this.getAsyncStats(ids, statsRequest, callback, true)
+    return this.getAsyncStats(ids, statsRequest, callback, true, qsKey, dataKey)
   }
 
-  getAsyncStats (ids, statsRequest, callback, firstFetchWait = true) {
+  getAsyncStats (ids, statsRequest, callback, firstFetchWait = true, qsKey, dataKey) {
     // callback will be invoked for each stats per id or with ApiError instance
     // (fail may be only on retries exceeded for now)
     // TODO: return stats promises
@@ -240,14 +244,18 @@ export default class Api {
 
     if (typeof statsRequest === 'string' || statsRequest instanceof String) {
       const url = statsRequest
-      statsRequest = (ids) => this.get(url, {ids: ids.join(',')})
+      statsRequest = (ids) => this.get(url, {[qsKey || 'ids']: ids.join(',')})
     }
     let retriesLeft = this.TASK_MAX_RETRIES
 
     const request = () => {
       return statsRequest(ids).then(statsMap => {
-        Object.entries(statsMap).forEach(([id, stats]) => callback(id, stats))
-        ids = ids.filter(id => statsMap[id] === undefined)
+        Object.entries(dataKey ? statsMap[dataKey] : statsMap).forEach(([id, stats]) => {
+          callback(id, stats || new this.Error(700, 'Fetch error'))
+        })
+        ids = ids.filter(id => {
+          return (dataKey ? statsMap[dataKey][id] : statsMap[id]) === undefined
+        })
 
         retriesLeft -= 1
         if (retriesLeft > 0 && ids.length) {
