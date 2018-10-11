@@ -64,7 +64,7 @@ export default class Api {
     }))
     // TODO: create and subclass Configurable to allow inheritance and later configuration
 
-    this.BASE_URL = settings.BASE_URL
+    this.BASE_URL = settings.BASE_URL || settings.URL
 
     const _set = (name, default_) => {
       this[name] = settings[name] != null ? settings[name] : default_
@@ -229,7 +229,8 @@ export default class Api {
     })
   }
 
-  getAsyncStatsForObjects (objects, statsMap, statsRequest, callback, idAttr = 'id', qsKey = 'ids', dataKey) {
+  getAsyncStatsForObjects (objects, statsMap, statsRequest, callback,
+                           idAttr = 'id', qsKey = 'ids', dataKey) {
     let ids = objects.map((obj) => idAttr ? String(obj[idAttr]) : String(obj))
     Object.entries(statsMap).forEach(([id, stats]) => callback(id, stats))
     ids = ids.filter(id => statsMap[id] === undefined)
