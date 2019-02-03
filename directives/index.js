@@ -4,4 +4,8 @@ export const routeTo = {
   bind: function (el, binding, vnode) {
     el.onclick = () => vnode.context.$router.push(binding.value)
   },
+
+  update: function (el, binding, vnode) {
+    el.onclick = () => vnode.context.$router.push(binding.value)
+  },
 }
