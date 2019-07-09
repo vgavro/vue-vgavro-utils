@@ -237,6 +237,49 @@ export default class Api {
     return this.getAsyncStats(ids, statsRequest, callback, true, qsKey, dataKey)
   }
 
+  getAsyncBulkForObjects (objects, statsMap, statsRequest, callback,
+                          idAttr = 'id', qsKey = 'ids') {
+    let ids = objects.map((obj) => idAttr ? String(obj[idAttr]) : String(obj))
+    Object.entries(statsMap.data).forEach(([id, stats]) => callback(id, stats))
+    ids = ids.filter(id => statsMap.data[id] === undefined)
+    return this.getAsyncBulk(ids, statsRequest, callback, true, qsKey)
+  }
+
+  getAsyncBulk (ids, statsRequest, callback, firstFetchWait = true, qsKey = 'ids') {
+    if (!ids.length) return
+
+    if (typeof statsRequest === 'string' || statsRequest instanceof String) {
+      const url = statsRequest
+      statsRequest = (ids) => this.get(url, {[qsKey]: ids.join(',')})
+    }
+    let retriesLeft = this.TASK_MAX_RETRIES
+
+    const request = () => {
+      return statsRequest(ids).then(({ stats }) => {
+        console.log(stats)
+        Object.entries(stats.errors).forEach(([id, error]) => {
+          callback(id, new this.Error(error.code, error.message))
+        })
+        Object.entries(stats.data).forEach(([id, stats]) => {
+          callback(id, stats)
+        })
+        ids = ids.filter(id => {
+          return stats.data[id] === stats.errors[id] === undefined
+        })
+
+        retriesLeft -= 1
+        if (retriesLeft > 0 && ids.length) {
+          setTimeout(request, this.TASK_WAIT_TIMEOUT)
+        } else {
+          ids.forEach(id => callback(id, new this.Error(600, 'Stats timeout')))
+        }
+      })
+    }
+
+    if (firstFetchWait) setTimeout(request, this.TASK_WAIT_TIMEOUT)
+    else request()
+  }
+
   getAsyncStats (ids, statsRequest, callback, firstFetchWait = true, qsKey = 'ids', dataKey) {
     // callback will be invoked for each stats per id or with ApiError instance
     // (fail may be only on retries exceeded for now)
