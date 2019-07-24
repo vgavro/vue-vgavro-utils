@@ -200,7 +200,7 @@ export default class Api {
         url + JSON.stringify(qs), cache, cacheTimeout
       )
     }
-    return this.request('get', url, {qs})
+    return this.request('get', url, {qs, humps})
   }
   post (url, payload) {
     return this.request('post', url, {data: payload})
